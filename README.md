@@ -17,6 +17,7 @@ What it does right now:
 - records the production architecture for the `even-codex` system
 - records the supported private local-network deployment mode for the Even plugin bridge
 - defines the MVP scope, non-goals, interfaces, security constraints, and rollout phases
+- exposes the first runtime protocol contract module for event types, command names, and deployment modes
 - captures the repository and release rules for future implementation tickets
 
 ## Installation
@@ -32,6 +33,12 @@ Until the runtime exists, this repository should be treated as the governed desi
 ## CLI Usage
 
 There is no end-user CLI workflow yet. This bootstrap release is documentation-first and does not expose a live `dashboard even-codex.*` command.
+
+Development-facing example:
+
+```bash
+perl -Ilib -MEven::Codex::Protocol -E 'say for Even::Codex::Protocol::event_types()'
+```
 
 ## Browser Usage
 
