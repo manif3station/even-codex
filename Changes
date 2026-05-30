@@ -1,0 +1,6 @@
+Revision history for even-codex
+
+0.01 2026-05-31
+    - bootstrap governed even-codex skill repository
+    - add production software specification in SPEC.md
+    - add minimal spec metadata module and Docker-verified tests
