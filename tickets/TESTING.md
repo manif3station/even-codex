@@ -10,7 +10,7 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 
 - verified on 2026-05-31
 - all 5 test files passed
-- 31 assertions passed
+- 32 assertions passed
 - selected module statement coverage reached `100.0`
 - selected module subroutine coverage reached `100.0`
 

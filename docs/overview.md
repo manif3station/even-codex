@@ -9,3 +9,5 @@ The purpose of this first ticket is to freeze the production architecture before
 - the Even Hub plugin
 
 This avoids building a false direct-connect design between the phone-hosted Even runtime and a laptop-local DD route.
+
+The specification now also records a supported LAN-only deployment mode. That mode allows the bridge or relay to stay on a private local network, but it still must be reachable from the phone runtime and must not be treated as laptop-local `localhost`.

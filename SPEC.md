@@ -31,7 +31,7 @@ The Even SDK runtime is not the same as a laptop-local DD runtime:
 - Codex TUI runs locally on the developer machine
 - the phone-hosted plugin must satisfy Even networking allowlists and browser CORS rules
 
-Because of that split, a direct `Even plugin -> local DD endpoint` design is not production-safe. A relay layer is required.
+Because of that split, a direct `Even plugin -> laptop-local localhost endpoint` design is not production-safe. A relay or bridge layer that is reachable from the phone runtime is required.
 
 ## 4. Goals
 
@@ -56,6 +56,8 @@ The production topology is:
 
 `Even Glasses <-> Even mobile app plugin <-> relay API/WebSocket <-> local even-codex DD skill <-> Codex TUI`
 
+This relay does not have to be public internet facing. A private LAN-reachable bridge is a supported production deployment shape, as long as the phone-hosted plugin can reach it and the Even networking constraints are satisfied.
+
 ### 6.1 Even Glasses
 
 - render short formatted text, progress, menus, and final responses
@@ -75,6 +77,7 @@ The production topology is:
 - carries events between the phone-side plugin and the local bridge
 - tracks session presence, heartbeats, acknowledgements, and reconnect windows
 - buffers short-lived undelivered messages for reconnect recovery
+- may be deployed on the local network instead of on a public internet host
 
 ### 6.4 Local DD Skill
 
@@ -200,6 +203,35 @@ Optional fields may include:
 - preserve the final authoritative answer even if commentary streaming is interrupted
 - expose health and status signals for relay and local bridge components
 
+## 10.1 Local-Network Deployment Mode
+
+`even-codex` must support a LAN-only deployment mode for users who do not want a public relay.
+
+In this mode:
+
+- the Even mobile app plugin connects to a relay or bridge on a LAN-reachable host or private DNS name
+- the relay or bridge may run on the same machine that hosts Codex TUI, as long as the phone can reach that machine over the network
+- the target must not be modeled as laptop-local `127.0.0.1` or `localhost` from the phone-hosted plugin perspective
+- Even allowlists, browser CORS rules, and any packaged-app HTTPS requirements still apply
+
+Example LAN deployment topology:
+
+`Even Glasses <-> Even mobile app plugin <-> 192.168.x.x or private hostname <-> local even-codex bridge <-> Codex TUI`
+
+This mode is intended for:
+
+- home or office private-network use
+- same-Wi-Fi phone-to-laptop workflows
+- local-first deployments where the user does not want a public cloud relay
+
+This mode does not remove the need for:
+
+- authenticated sessions
+- reconnect handling
+- event acknowledgements
+- operational logging
+- packaged-app network whitelist compliance
+
 ## 11. UX Requirements For Even
 
 - optimize for short text and decisive actions
@@ -246,6 +278,7 @@ Implementation tickets derived from this specification must provide:
 - simulator or headless validation for the Even plugin
 - integration tests for relay-to-bridge delivery
 - end-to-end tests for live commentary streaming and final-answer delivery
+- verification for both public-hosted and LAN-only supported deployment modes where applicable
 
 ## 15. Delivery Plan
 

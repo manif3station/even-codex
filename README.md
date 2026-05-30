@@ -15,6 +15,7 @@ The skill will add:
 What it does right now:
 
 - records the production architecture for the `even-codex` system
+- records the supported private local-network deployment mode for the Even plugin bridge
 - defines the MVP scope, non-goals, interfaces, security constraints, and rollout phases
 - captures the repository and release rules for future implementation tickets
 

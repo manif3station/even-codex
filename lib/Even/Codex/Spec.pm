@@ -26,6 +26,7 @@ sub required_sections {
         'Interface Contract',
         'Security Requirements',
         'Reliability Requirements',
+        'Local-Network Deployment Mode',
         'Testing Strategy',
         'Delivery Plan',
     );
