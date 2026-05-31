@@ -3,6 +3,7 @@ FROM developer-dashboard:latest
 ENV DEBIAN_FRONTEND=noninteractive
 ENV DISPLAY=:1
 ENV VITE_EVEN_CODEX_DEFAULT_BRIDGE_ORIGIN=http://127.0.0.1:6789
+ENV EVEN_CODEX_REAL_CODEX_BIN=/opt/codex-cli/bin/codex
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
@@ -15,7 +16,10 @@ RUN apt-get update \
     libdrm2 \
     libgbm1 \
     libgtk-3-0 \
+    libjavascriptcoregtk-4.1-0 \
     libnss3 \
+    libsoup-3.0-0 \
+    libwebkit2gtk-4.1-0 \
     libx11-xcb1 \
     libxcomposite1 \
     libxdamage1 \
@@ -24,12 +28,16 @@ RUN apt-get update \
     libxrandr2 \
     novnc \
     openbox \
+    scrot \
     websockify \
+    xdotool \
+    xterm \
     x11vnc \
     xvfb \
  && rm -rf /var/lib/apt/lists/*
 
-RUN npm install -g @evenrealities/evenhub-simulator@0.7.3
+RUN npm install -g @evenrealities/evenhub-simulator@0.7.3 \
+ && npm install -g --prefix /opt/codex-cli @openai/codex@0.135.0
 
 WORKDIR /opt/even-codex
 COPY . /opt/even-codex

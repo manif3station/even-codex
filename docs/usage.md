@@ -104,8 +104,11 @@ The default start flow now:
 - uses `developer-dashboard:latest` as the base image
 - starts a noVNC desktop on `http://127.0.0.1:15700/vnc.html?autoconnect=1&resize=scale`
 - installs and runs `even-codex` inside the container
+- installs the `codex` CLI inside the container
+- mounts `~/.codex` into `/root/.codex` so existing Codex auth and config are reused
 - injects the active workspace pairing into the containerized bridge chain
 - starts the DD web server, local bridge, Hub app server, and Even simulator without extra host setup
+- opens the paired Codex session in a visible xterm window through the real bundled Codex CLI binary
 
 Useful override environment variables for Docker mode:
 
@@ -124,6 +127,7 @@ Docker mode proven outputs:
 - `dashboard even-codex.simulator start` returns JSON with `mode`, `novnc_url`, `novnc_port`, `workspace_ref`, and `codex_session_id`
 - repeating `dashboard even-codex.simulator start` while the compose state exists returns `already-running`
 - `dashboard even-codex.simulator stop` tears the compose stack down and removes the generated env file
+- the live noVNC desktop can show a real Codex turn in the xterm window and the same prompt or reply on the Even plugin and glasses surfaces
 
 If you want the older host-local process mode instead of Docker, force it explicitly:
 
@@ -214,6 +218,8 @@ Inside `D2-Codex`, the phone-side plugin now gives the user:
 - a per-connector session library with activation and removal controls
 - refresh and glasses-detail or session-cycle controls
 - readable bridge endpoint summaries
+- live transcript panels for the latest prompt and latest reply
+- background polling that refreshes the latest prompt and reply without a manual page reload
 
 On the glasses page, the current controls are:
 

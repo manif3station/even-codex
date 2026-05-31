@@ -69,6 +69,7 @@ SH
         EVEN_CODEX_SIMULATOR_MODE       => 'docker',
         EVEN_CODEX_SIMULATOR_NOVNC_PORT => 15700,
         EVEN_CODEX_SIMULATOR_VNC_PORT   => 15900,
+        EVEN_CODEX_WORKSPACE_PATH       => '/tmp/foobar-workspace',
     );
 
     my ( $add_rc, $add_output ) = run_start_add( \%env, 'codex-session-444' );
@@ -89,6 +90,7 @@ SH
     my $env_file = slurp( $start_payload->{env_file} );
     like( $env_file, qr/^EVEN_CODEX_WORKSPACE_REF=foobar$/m, 'env file carries the workspace ref' );
     like( $env_file, qr/^EVEN_CODEX_CODEX_SESSION_ID=codex-session-444$/m, 'env file carries the session id' );
+    like( $env_file, qr/^EVEN_CODEX_WORKSPACE_PATH=\/tmp\/foobar-workspace$/m, 'env file carries the active workspace path' );
     like( $env_file, qr/^EVEN_CODEX_NOVNC_PORT=15700$/m, 'env file carries the noVNC port' );
 
     my $docker_commands = slurp($docker_capture);

@@ -23,8 +23,8 @@ like( $source, qr/data-role="activate-session"/, 'phone UI exposes session activ
 like( $source, qr/mergeBootstrapIntoConnector/, 'source merges bootstrap payloads into the active connector profile' );
 like( $source, qr/cycleSession/, 'source supports session cycling for the glasses view' );
 like( $source, qr/OsEventTypeList\.CLICK_EVENT/, 'source still reacts to glasses click events' );
-like( $source, qr/Tap footer to switch session/, 'glasses UI explains session switching from the footer' );
-unlike( $source, qr/Tap footer or header to refresh/, 'footer refresh copy is replaced with session switching guidance' );
+like( $source, qr/Use the phone plugin to refresh the connector and switch sessions/, 'glasses UI explains that connector refresh and session switching stay on the phone plugin' );
+unlike( $source, qr/Tap footer or header to refresh/, 'old footer or header refresh copy is removed' );
 
 my $style = slurp('even-hub/src/style.css');
 like( $style, qr/\.profile-list\b/, 'styles define a connector profile list' );

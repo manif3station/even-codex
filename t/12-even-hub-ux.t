@@ -20,13 +20,16 @@ like( $source, qr/Connection Checklist/, 'phone UI exposes a setup checklist hea
 like( $source, qr/Connector Profiles/, 'phone UI exposes connector management' );
 like( $source, qr/Session Library/, 'phone UI exposes saved session management' );
 like( $source, qr/Port 6789/, 'phone UI explains the default bridge port' );
+like( $source, qr/Latest Prompt/, 'phone UI exposes the latest prompt transcript panel' );
+like( $source, qr/Latest Reply/, 'phone UI exposes the latest reply transcript panel' );
+like( $source, qr/\/session/, 'source fetches the live transcript route' );
 like( $source, qr/refreshBootstrap/, 'source centralizes bridge refresh work' );
+like( $source, qr/quiet:\s*true/, 'source uses a quiet background refresh path for live transcript updates' );
 like( $source, qr/rebuildPageContainer/, 'source rebuilds the glasses page for richer UI updates' );
 like( $source, qr/OsEventTypeList\.CLICK_EVENT/, 'source handles click events for glasses interaction' );
 like( $source, qr/textEvent\?->\{?containerID|\btextEvent\b/, 'source reacts to Even text events from glasses containers' );
 like( $source, qr/Tap detail to cycle/, 'glasses UI explains how to navigate detail panes' );
-like( $source, qr/Tap header to refresh/, 'glasses UI explains how to refresh from glasses' );
-like( $source, qr/Tap footer to switch session/, 'glasses UI explains how to switch sessions from glasses' );
+like( $source, qr/Refresh and switch from phone/, 'glasses UI explains that refresh and session switching stay on the phone plugin' );
 
 my $style = slurp('even-hub/src/style.css');
 like( $style, qr/\.panel\b/, 'styles define richer panel sections' );

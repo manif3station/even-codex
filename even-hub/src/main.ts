@@ -31,6 +31,8 @@ type ConnectorProfile = {
   bootstrapUrl: string;
   pluginUrl: string;
   lastSeenAt: string;
+  lastUserMessage: string;
+  lastAssistantMessage: string;
 };
 
 type StoredConfig = {
@@ -66,10 +68,20 @@ type HealthPayload = {
   port: number;
 };
 
+type SessionPayload = {
+  ok: boolean;
+  session_id: string;
+  session_file: string;
+  title: string;
+  last_user_message: string;
+  last_assistant_message: string;
+};
+
 const CONFIG_STORAGE_KEY = 'd2_codex.config';
 const LEGACY_ORIGIN_STORAGE_KEY = 'd2_codex.bridge_origin';
 const DEFAULT_BRIDGE_ORIGIN =
   import.meta.env.VITE_EVEN_CODEX_DEFAULT_BRIDGE_ORIGIN || 'http://192.168.1.20:6789';
+const AUTO_REFRESH_INTERVAL_MS = 3000;
 const GLASSES_CONTAINER = {
   header: 1,
   detail: 2,
@@ -94,6 +106,7 @@ async function boot() {
     successMessage: 'Bridge check complete.',
     failureMessage: 'Bridge check failed.',
   });
+  startAutoRefresh(bridge, state);
 
   bridge.onEvenHubEvent(async (event) => {
     const sysEventType = event.sysEvent?.eventType;
@@ -104,26 +117,9 @@ async function boot() {
 
     const textEvent = event.textEvent;
     if (textEvent?.eventType === OsEventTypeList.CLICK_EVENT) {
-      if (textEvent.containerID === GLASSES_CONTAINER.header) {
-        await refreshBootstrap(bridge, state, {
-          successMessage: 'Refreshed from glasses header.',
-          failureMessage: 'Refresh from glasses header failed.',
-        });
-        return;
-      }
-
       if (textEvent.containerID === GLASSES_CONTAINER.detail) {
         state.detailMode = nextDetailMode(state.detailMode);
         state.lastMessage = `Showing ${state.detailMode} view on glasses.`;
-        renderPhoneUi(state);
-        await syncGlassesPage(bridge, state);
-        return;
-      }
-
-      if (textEvent.containerID === GLASSES_CONTAINER.footer) {
-        cycleSession(state);
-        state.lastMessage = `Glasses switched to ${getActiveSession(state)?.label || 'the next session'}.`;
-        await persistConfig(bridge, state.config);
         renderPhoneUi(state);
         await syncGlassesPage(bridge, state);
         return;
@@ -301,28 +297,55 @@ function createInitialState(config: StoredConfig): PluginState {
 async function refreshBootstrap(
   bridge: Awaited<ReturnType<typeof waitForEvenAppBridge>>,
   state: PluginState,
-  messages: { successMessage: string; failureMessage: string },
+  messages: { successMessage: string; failureMessage: string; quiet?: boolean },
 ) {
   state.lastCheckedAt = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   const connector = getActiveConnector(state);
 
   try {
-    const [health, bootstrap] = await Promise.all([
+    const [health, bootstrap, session] = await Promise.all([
       fetchJson<HealthPayload>(`${connector.origin}/health`),
       fetchJson<BootstrapPayload>(`${connector.origin}/bootstrap`),
+      fetchJson<SessionPayload>(`${connector.origin}/session`),
     ]);
 
     state.bridgeStatus = health.ok ? 'connected' : 'offline';
     mergeBootstrapIntoConnector(connector, bootstrap);
+    mergeSessionIntoConnector(connector, session);
     await persistConfig(bridge, state.config);
-    state.lastMessage = `${messages.successMessage} ${connector.name} paired ${bootstrap.workspace_ref} to ${bootstrap.codex_session_id}.`;
+    if (!messages.quiet) {
+      state.lastMessage = `${messages.successMessage} ${connector.name} paired ${bootstrap.workspace_ref} to ${bootstrap.codex_session_id}.`;
+    }
   } catch (error) {
     state.bridgeStatus = 'offline';
-    state.lastMessage = `${messages.failureMessage} ${formatError(error)}`;
+    if (!messages.quiet) {
+      state.lastMessage = `${messages.failureMessage} ${formatError(error)}`;
+    }
   }
 
   renderPhoneUi(state);
   await syncGlassesPage(bridge, state);
+}
+
+function startAutoRefresh(
+  bridge: Awaited<ReturnType<typeof waitForEvenAppBridge>>,
+  state: PluginState,
+) {
+  let refreshInFlight = false;
+  window.setInterval(() => {
+    if (refreshInFlight) {
+      return;
+    }
+
+    refreshInFlight = true;
+    void refreshBootstrap(bridge, state, {
+      successMessage: '',
+      failureMessage: '',
+      quiet: true,
+    }).finally(() => {
+      refreshInFlight = false;
+    });
+  }, AUTO_REFRESH_INTERVAL_MS);
 }
 
 function renderPhoneUi(state: PluginState) {
@@ -362,6 +385,17 @@ function renderPhoneUi(state: PluginState) {
           <article class="panel">
             <p class="label">Lifecycle</p>
             <p class="value">${escapeHtml(state.lifecycle)}</p>
+          </article>
+        </section>
+
+        <section class="metric-grid">
+          <article class="panel">
+            <p class="label">Latest Prompt</p>
+            <p class="value">${escapeHtml(connector.lastUserMessage || 'No prompt yet.')}</p>
+          </article>
+          <article class="panel">
+            <p class="label">Latest Reply</p>
+            <p class="value">${escapeHtml(connector.lastAssistantMessage || 'No reply yet.')}</p>
           </article>
         </section>
 
@@ -429,9 +463,8 @@ function renderPhoneUi(state: PluginState) {
         <section class="panel stack">
           <h2 class="section-title">Glasses Controls</h2>
           <ul class="list">
-            <li>Tap header to refresh the active connector.</li>
-            <li>Tap detail to cycle between summary, network, and setup views.</li>
-            <li>Tap footer to switch session inside the active connector only.</li>
+            <li>Tap detail to cycle between summary, network, and conversation views.</li>
+            <li>Use the phone plugin to refresh the connector and switch sessions.</li>
             <li>Double-click to exit.</li>
           </ul>
           <p class="status">${escapeHtml(state.lastMessage)}</p>
@@ -520,7 +553,7 @@ function buildTextObjects(state: PluginState) {
       containerID: GLASSES_CONTAINER.header,
       containerName: 'd2-codex-header',
       content: buildHeaderText(state),
-      isEventCapture: 1,
+      isEventCapture: 0,
     }),
     new TextContainerProperty({
       xPosition: 0,
@@ -546,7 +579,7 @@ function buildTextObjects(state: PluginState) {
       containerID: GLASSES_CONTAINER.footer,
       containerName: 'd2-codex-footer',
       content: buildFooterText(state),
-      isEventCapture: 1,
+      isEventCapture: 0,
     }),
   ];
 }
@@ -556,13 +589,12 @@ function buildHeaderText(state: PluginState) {
   return [
     'D2-Codex',
     `${state.bridgeStatus.toUpperCase()}  ${truncate(connector.name, 20)}`,
-    'Tap header to refresh',
+    truncate(`Workspace ${connector.workspaceRef}`, 24),
   ].join('\n');
 }
 
 function buildDetailText(state: PluginState) {
   const connector = getActiveConnector(state);
-  const session = getActiveSession(state);
 
   if (state.detailMode === 'network') {
     return [
@@ -575,16 +607,16 @@ function buildDetailText(state: PluginState) {
 
   if (state.detailMode === 'steps') {
     return [
-      'Session Switching',
-      truncate(`Connector ${connector.name}`, 34),
-      'Phone swaps connectors',
+      'Conversation',
+      truncate(`Prompt ${connector.lastUserMessage || 'No prompt yet.'}`, 34),
+      truncate(`Reply ${connector.lastAssistantMessage || 'No reply yet.'}`, 34),
       'Tap detail to cycle',
     ].join('\n');
   }
 
   return [
     'Summary',
-    truncate(`Session ${session?.label || connector.currentSessionId}`, 34),
+    truncate(`Reply ${connector.lastAssistantMessage || 'No reply yet.'}`, 34),
     truncate(`Workspace ${connector.workspaceRef}`, 34),
     'Tap detail to cycle',
   ].join('\n');
@@ -592,11 +624,10 @@ function buildDetailText(state: PluginState) {
 
 function buildFooterText(state: PluginState) {
   const connector = getActiveConnector(state);
-  const session = getActiveSession(state);
   return [
-    `Session ${truncate(session?.label || connector.currentSessionId || 'Unknown', 24)}`,
+    `Prompt ${truncate(connector.lastUserMessage || 'No prompt yet.', 25)}`,
     `Checked ${state.lastCheckedAt}`,
-    'Tap footer to switch session',
+    'Refresh and switch from phone',
     'Double-click to exit',
   ].join('\n');
 }
@@ -732,6 +763,11 @@ function mergeBootstrapIntoConnector(connector: ConnectorProfile, bootstrap: Boo
   }
 }
 
+function mergeSessionIntoConnector(connector: ConnectorProfile, session: SessionPayload) {
+  connector.lastUserMessage = session.last_user_message || connector.lastUserMessage;
+  connector.lastAssistantMessage = session.last_assistant_message || connector.lastAssistantMessage;
+}
+
 function createConnectorProfile(name: string, origin: string, index: number): ConnectorProfile {
   const normalizedOrigin = normalizeOrigin(origin);
   return {
@@ -749,6 +785,8 @@ function createConnectorProfile(name: string, origin: string, index: number): Co
     bootstrapUrl: `${normalizedOrigin}/bootstrap`,
     pluginUrl: `${normalizedOrigin}/plugin/`,
     lastSeenAt: 'Not checked yet',
+    lastUserMessage: 'No prompt yet.',
+    lastAssistantMessage: 'No reply yet.',
   };
 }
 

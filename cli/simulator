@@ -30,6 +30,7 @@ bridge_port="${EVEN_CODEX_SIMULATOR_BRIDGE_HOST_PORT:-16789}"
 app_port="${EVEN_CODEX_SIMULATOR_APP_HOST_PORT:-14173}"
 automation_host_port="${EVEN_CODEX_SIMULATOR_AUTOMATION_HOST_PORT:-19898}"
 novnc_url="http://127.0.0.1:${novnc_port}/vnc.html?autoconnect=1&resize=scale"
+workspace_path="${EVEN_CODEX_WORKSPACE_PATH:-$(pwd)}"
 
 mkdir -p "${local_root}" "${docker_root}"
 
@@ -178,6 +179,7 @@ write_docker_env_file() {
   cat > "${docker_env_file}" <<EOF
 EVEN_CODEX_WORKSPACE_REF=${workspace_ref}
 EVEN_CODEX_CODEX_SESSION_ID=${session_id}
+EVEN_CODEX_WORKSPACE_PATH=${workspace_path}
 EVEN_CODEX_NOVNC_PORT=${novnc_port}
 EVEN_CODEX_VNC_PORT=${vnc_port}
 EVEN_CODEX_DASHBOARD_PORT=${dashboard_port}

@@ -73,7 +73,10 @@ Open the running noVNC desktop at:
 http://127.0.0.1:15700/vnc.html?autoconnect=1&resize=scale
 ```
 
-The default simulator command now builds a skill-local image from `developer-dashboard:latest`, injects the active workspace pairing, and starts the DD environment, Hub app, bridge, and Even simulator together.
+The default simulator command now builds a skill-local image from `developer-dashboard:latest`, injects the active workspace pairing, and starts the DD environment, Hub app, bridge, Even simulator, and Codex CLI together.
+
+The simulator container also mounts `~/.codex` into `/root/.codex`, so existing Codex auth and config can be reused inside the noVNC desktop without a second login flow.
+It resumes the paired session in a visible xterm window through the real bundled Codex CLI binary, not through a wrapper-only stub.
 
 If you want the older host-local process mode instead of the Docker desktop:
 
@@ -118,6 +121,7 @@ The plugin reads `/bootstrap` and shows:
 - the paired Codex session id
 - the bridge host and port
 - the bootstrap endpoint
+- the latest paired Codex prompt and reply from `/session`
 
 ## Even Hub Packaging
 
@@ -147,6 +151,7 @@ The current packaged UX now includes:
 
 - a phone-side connection dashboard with setup checklist, connector profiles, session libraries, and refresh controls
 - a glasses-side three-panel layout with readable status, detail cycling, and session switching inside the active connector
+- automatic background transcript refresh so the phone-side plugin and glasses view catch up to live Codex turns without a manual reload
 - on-glasses prompts that make refresh, session switching, detail navigation, and exit behavior obvious
 
 The current submission bundle now also includes:
@@ -156,6 +161,7 @@ The current submission bundle now also includes:
 - greyscale icon and background assets under `even-hub/assets/`
 - a simulator-backed screenshot capture workflow for `glasses.png` and `webview.png`
 - a Dockerized noVNC simulator controller for one-command viewing on port `15700`
+- the Codex CLI inside that simulator container with host `~/.codex` reuse
 
 ## Examples
 
@@ -175,6 +181,7 @@ dashboard even-codex.e2e start
 ```
 
 That brings up the Even bridge on port `6789`, serves the Hub app locally, and starts the Even simulator against that app by default. After that, the phone plugin can save more connector origins and more session ids without leaving the Even app.
+In the Dockerized noVNC desktop, the Codex xterm, the phone-side Even plugin, and the glasses view all reflect the paired session transcript. A live `hi -> Hi` smoke run has been proven end to end.
 
 Edge-case example:
 

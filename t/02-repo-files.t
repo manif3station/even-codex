@@ -33,6 +33,7 @@ my @paths = (
     'docker/simulator/.dockerignore',
     'docker/simulator/Dockerfile',
     'docker/simulator/entrypoint.sh',
+    'lib/Even/Codex/Transcript.pm',
     'scripts/build-even-hub.mjs',
     'scripts/capture-even-hub-screenshots.mjs',
     'vite.config.ts',
@@ -46,6 +47,7 @@ my @paths = (
     'docs/changes/2026-05-31-even-hub-listing-assets.md',
     'docs/changes/2026-05-31-even-hub-simulator-cli.md',
     'docs/changes/2026-05-31-docker-novnc-simulator.md',
+    'docs/changes/2026-05-31-live-transcript-e2e.md',
     'docs/changes/2026-05-31-one-command-desktop-e2e.md',
     'docs/changes/2026-05-31-multi-connector-session-control.md',
     'docs/changes/2026-05-31-runnable-lan-bridge-and-plugin.md',
@@ -57,6 +59,8 @@ my @paths = (
     'tickets/EPIC-327.md',
     'tickets/EPIC-328.md',
     'tickets/EPIC-329.md',
+    'tickets/EPIC-330.md',
+    'tickets/EPIC-331.md',
     'tickets/DD-315.md',
     'tickets/DD-322.md',
     'tickets/DD-323.md',
@@ -66,6 +70,8 @@ my @paths = (
     'tickets/DD-327.md',
     'tickets/DD-328.md',
     'tickets/DD-329.md',
+    'tickets/DD-330.md',
+    'tickets/DD-331.md',
     'tickets/TESTING.md',
     't/12-even-hub-ux.t',
     't/13-even-hub-listing.t',
@@ -73,6 +79,8 @@ my @paths = (
     't/15-e2e-cli.t',
     't/16-even-hub-multisession.t',
     't/17-simulator-docker.t',
+    't/18-simulator-codex-container.t',
+    't/19-live-transcript.t',
 );
 
 for my $path (@paths) {

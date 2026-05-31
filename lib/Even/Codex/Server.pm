@@ -7,8 +7,9 @@ use IO::Socket::INET;
 use JSON::PP qw(encode_json);
 
 use Even::Codex::Plugin ();
+use Even::Codex::Transcript ();
 
-our $VERSION = '0.09';
+our $VERSION = '0.11';
 
 sub new {
     my ( $class, %args ) = @_;
@@ -23,11 +24,13 @@ sub new {
         advertised_host  => $args{advertised_host} || '127.0.0.1',
         workspace_ref    => $args{workspace_ref},
         codex_session_id => $args{codex_session_id},
+        env              => $args{env} || \%ENV,
     }, $class;
 }
 
 sub bootstrap_payload {
     my ($self) = @_;
+    my $session = $self->session_payload;
     return {
         ok               => 1,
         workspace_ref    => $self->{workspace_ref},
@@ -38,6 +41,9 @@ sub bootstrap_payload {
         health_url       => $self->base_url . '/health',
         bootstrap_url    => $self->base_url . '/bootstrap',
         plugin_url       => $self->base_url . '/plugin/',
+        session_url      => $self->base_url . '/session',
+        last_user_message      => $session->{last_user_message},
+        last_assistant_message => $session->{last_assistant_message},
     };
 }
 
@@ -56,6 +62,14 @@ sub health_payload {
 sub base_url {
     my ($self) = @_;
     return 'http://' . $self->{advertised_host} . q{:} . $self->{port};
+}
+
+sub session_payload {
+    my ($self) = @_;
+    return Even::Codex::Transcript::session_snapshot(
+        env        => $self->{env},
+        session_id => $self->{codex_session_id},
+    );
 }
 
 sub serve {
@@ -99,6 +113,7 @@ sub _handle_client {
     my ( $status, $content_type, $body ) = $self->_response_for_path($path);
     print {$client} "HTTP/1.1 $status " . ( $status == 200 ? 'OK' : 'Not Found' ) . "\r\n";
     print {$client} "Content-Type: $content_type\r\n";
+    print {$client} "Access-Control-Allow-Origin: *\r\n";
     print {$client} "Content-Length: " . length($body) . "\r\n";
     print {$client} "Connection: close\r\n\r\n";
     print {$client} $body;
@@ -114,6 +129,9 @@ sub _response_for_path {
 
     return ( 200, 'application/json', encode_json( $self->bootstrap_payload ) )
       if $path eq '/bootstrap';
+
+    return ( 200, 'application/json', encode_json( $self->session_payload ) )
+      if $path eq '/session';
 
     return ( 200, 'text/html; charset=utf-8', Even::Codex::Plugin::index_html() )
       if $path eq '/plugin' || $path eq '/plugin/';

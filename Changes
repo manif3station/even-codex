@@ -1,5 +1,20 @@
 Revision history for even-codex
 
+0.11 2026-05-31
+    - route the latest paired Codex prompt and reply through `/session` and
+      into both the bridge-served plugin and the packaged `D2-Codex` app
+    - make the Dockerized simulator desktop resume the paired session through
+      the real bundled Codex CLI binary and prove a visible `hi -> Hi` turn
+    - add background transcript refresh in the Even Hub app so the phone-side
+      plugin and glasses view catch up automatically to live Codex turns
+
+0.10 2026-05-31
+    - install the `codex` CLI inside the Dockerized simulator desktop image
+    - mount the host `~/.codex` directory into the simulator container so
+      existing Codex auth and config can be reused
+    - record Codex availability inside the simulator startup flow and verify
+      the container contract through governed tests
+
 0.09 2026-05-31
     - make `dashboard even-codex.simulator start` launch a Dockerized noVNC
       desktop based on `developer-dashboard:latest`

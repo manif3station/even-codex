@@ -30,6 +30,7 @@ like( $source, qr/OsEventTypeList\.ABNORMAL_EXIT_EVENT/, 'Even Hub source handle
 like( $source, qr/OsEventTypeList\.SYSTEM_EXIT_EVENT/, 'Even Hub source handles system exit' );
 like( $source, qr/getLocalStorage/, 'Even Hub source remembers setup through SDK local storage' );
 like( $source, qr/setLocalStorage/, 'Even Hub source persists setup through SDK local storage' );
+like( $source, qr/setInterval/, 'Even Hub source schedules background bridge refreshes' );
 
 my $style = slurp('even-hub/src/style.css');
 unlike( $style, qr/background(?:-color)?\s*:/i, 'Even Hub source styles avoid background fill declarations' );

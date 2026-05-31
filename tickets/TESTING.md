@@ -3,14 +3,14 @@
 ## Docker Verification
 
 ```bash
-docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-test bash -lc 'cd /workspace/skills/even-codex && rm -rf cover_db /workspace/skills/even-codex/cover_db .even-hub-build dist node_modules package-lock.json && npm install && HARNESS_PERL_SWITCHES=-MDevel::Cover prove -lr t && npm run build:hub && EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npm run pack:hub && EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npx evenhub pack .even-hub-build/app.json dist -o dist/test-listing.ehpk && cover -report text -select lib/Even/Codex/Spec.pm -select lib/Even/Codex/Protocol.pm -select lib/Even/Codex/State.pm -select lib/Even/Codex/Plugin.pm -select lib/Even/Codex/Server.pm -select lib/Even/Codex/Manager.pm'
+docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-test bash -lc 'cd /workspace/skills/even-codex && rm -rf cover_db /workspace/skills/even-codex/cover_db .even-hub-build dist node_modules package-lock.json && npm install && HARNESS_PERL_SWITCHES=-MDevel::Cover prove -lr t && npm run build:hub && EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npm run pack:hub && EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npx evenhub pack .even-hub-build/app.json dist -o dist/test-listing.ehpk && cover -report text -select lib/Even/Codex/Spec.pm -select lib/Even/Codex/Protocol.pm -select lib/Even/Codex/State.pm -select lib/Even/Codex/Plugin.pm -select lib/Even/Codex/Server.pm -select lib/Even/Codex/Manager.pm -select lib/Even/Codex/Transcript.pm'
 ```
 
 ## Verified Result
 
 - verified on 2026-05-31
-- all 18 test files passed
-- 376 assertions passed
+- all 20 test files passed
+- 439 assertions passed
 - selected module statement coverage reached `100.0`
 - selected module subroutine coverage reached `100.0`
 - selected module branch coverage reached `100.0`
@@ -25,7 +25,9 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 - `t/15-e2e-cli.t` proved the one-command desktop E2E launcher starts the bridge, app server, and simulator flow together
 - `t/16-even-hub-multisession.t` proved connector profile storage, per-connector session libraries, and glasses-side session switching guidance
 - `t/17-simulator-docker.t` proved the default simulator launcher writes a Docker env file, resolves the active pairing, and shells out to skill-local Docker Compose
-- a real smoke run built the simulator image, started the containerized desktop, returned `HTTP 200` from `http://127.0.0.1:15700/`, and then tore the stack down cleanly
+- `t/18-simulator-codex-container.t` proved the simulator image installs `codex`, mounts host `~/.codex`, and records Codex availability at startup
+- `t/19-live-transcript.t` proved transcript parsing and the `/session` route
+- a real smoke run built the simulator image, started the containerized desktop, confirmed `/opt/codex-cli/bin/codex` with version `codex-cli 0.135.0`, confirmed `/root/.codex/auth.json` and `/root/.codex/config.toml` were present from the host mount, returned `HTTP 200` from `http://127.0.0.1:15700/`, and proved the noVNC desktop could show a real `hi -> Hi` turn in the Codex xterm while the Even phone-side plugin and glasses view auto-refreshed to `Latest Prompt hi`, `Latest Reply Hi`, `Prompt hi`, and `Reply Hi`
 
 Coverage summary from the verified run:
 
@@ -36,6 +38,7 @@ lib/Even/Codex/Protocol.pm  stmt 100.0  bran 100.0  cond 100.0  sub 100.0
 lib/Even/Codex/Server.pm    stmt 100.0  bran 100.0  cond 100.0  sub 100.0
 lib/Even/Codex/Spec.pm      stmt 100.0                      sub 100.0
 lib/Even/Codex/State.pm     stmt 100.0  bran 100.0  cond 100.0  sub 100.0
+lib/Even/Codex/Transcript.pm stmt 100.0  bran 100.0  cond 100.0  sub 100.0
 Total                       stmt 100.0  bran 100.0  cond 100.0  sub 100.0
 ```
 
