@@ -27,9 +27,9 @@ The packaged Even Hub app:
 - uses `@evenrealities/even_hub_sdk`
 - creates the startup page on the glasses at launch
 - persists the bridge origin through SDK local storage
-- exposes a phone-side setup dashboard with refresh, reset, and pairing guidance
-- renders a three-container glasses layout for header, detail, and footer status
-- supports tap-to-refresh and tap-to-cycle interactions from the glasses page
+- exposes a phone-side setup dashboard with connector profile management, session libraries, refresh, and pairing guidance
+- renders a three-container glasses layout for header refresh, detail cycling, and footer session switching
+- supports tap-to-refresh, tap-to-cycle, and tap-to-switch-session interactions from the glasses page
 - handles root double-click exit with `bridge.shutDownPageContainer(1)`
 - packages through `evenhub pack` into `dist/d2-codex.ehpk`
 

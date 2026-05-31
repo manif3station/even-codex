@@ -42,6 +42,7 @@ my @paths = (
     'docs/changes/2026-05-31-even-hub-listing-assets.md',
     'docs/changes/2026-05-31-even-hub-simulator-cli.md',
     'docs/changes/2026-05-31-one-command-desktop-e2e.md',
+    'docs/changes/2026-05-31-multi-connector-session-control.md',
     'docs/changes/2026-05-31-runnable-lan-bridge-and-plugin.md',
     'tickets/SOW.md',
     'tickets/EPIC-315.md',
@@ -49,6 +50,7 @@ my @paths = (
     'tickets/EPIC-324.md',
     'tickets/EPIC-326.md',
     'tickets/EPIC-327.md',
+    'tickets/EPIC-328.md',
     'tickets/DD-315.md',
     'tickets/DD-322.md',
     'tickets/DD-323.md',
@@ -56,11 +58,13 @@ my @paths = (
     'tickets/DD-325.md',
     'tickets/DD-326.md',
     'tickets/DD-327.md',
+    'tickets/DD-328.md',
     'tickets/TESTING.md',
     't/12-even-hub-ux.t',
     't/13-even-hub-listing.t',
     't/14-simulator-cli.t',
     't/15-e2e-cli.t',
+    't/16-even-hub-multisession.t',
 );
 
 for my $path (@paths) {

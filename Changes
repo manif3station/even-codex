@@ -1,5 +1,13 @@
 Revision history for even-codex
 
+0.08 2026-05-31
+    - add multi-connector profile storage to the `D2-Codex` Even plugin so
+      the phone app can save and switch between different local DD connectors
+    - add per-connector Codex session libraries with phone-side activation and
+      removal controls
+    - add glasses-side session switching for the active connector while
+      keeping connector switching phone-only
+
 0.07 2026-05-31
     - add `dashboard even-codex.e2e {start,stop}` as a one-command desktop
       orchestration flow for the DD bridge, local Hub app server, and Even

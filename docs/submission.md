@@ -72,3 +72,4 @@ In a headless shell session, `evenhub-simulator` may still require an X display 
 - The icon and background assets are monochrome or greyscale to match the current review rules.
 - The screenshot workflow is simulator-backed because the current Even docs explicitly require screenshots that match real rendering.
 - The runtime plugin UX and the listing metadata are separate concerns; both now live in the repo and can be reviewed together.
+- The runtime plugin now keeps connector switching on the phone side while allowing session switching on glasses inside the active connector.

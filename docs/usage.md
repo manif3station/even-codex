@@ -178,13 +178,16 @@ Inside `D2-Codex`, the phone-side plugin now gives the user:
 
 - a connection status summary
 - a setup checklist for the pairing workflow
-- refresh, reset, and glasses-detail-cycle controls
+- saved connector profiles for different local DD connector origins
+- a per-connector session library with activation and removal controls
+- refresh and glasses-detail or session-cycle controls
 - readable bridge endpoint summaries
 
 On the glasses page, the current controls are:
 
 - tap header to refresh the bridge data
 - tap detail to cycle between summary, network, and setup-step panes
+- tap footer to switch sessions inside the active connector
 - double-click to exit through the Even confirmation flow
 
 ## Proven Outputs
@@ -194,4 +197,4 @@ On the glasses page, the current controls are:
 - `/plugin/` loads the bundled Even plugin page and renders the paired workspace and session metadata
 - `npm run build:hub` writes `dist/index.html` for Even Hub packaging
 - `EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npm run pack:hub` writes `dist/d2-codex.ehpk`
-- the packaged `D2-Codex` Hub app shows a guided phone-side setup dashboard and a multi-container glasses status layout
+- the packaged `D2-Codex` Hub app shows a guided phone-side connector and session dashboard plus a multi-container glasses status layout

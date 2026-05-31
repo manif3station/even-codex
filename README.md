@@ -82,6 +82,20 @@ dashboard even-codex.e2e stop
 
 That one command path builds the Hub app when needed, starts the DD bridge, starts a local Hub app server, and points the Even simulator at that served app URL.
 
+Inside the Even app, the user can now:
+
+- save and switch between different local DD connectors
+- keep a saved session list for each connector
+- choose the active Codex session from the phone plugin
+
+Inside the glasses view, the user can:
+
+- switch between saved sessions for the active connector
+- refresh the active connector
+- cycle detail panes
+
+The glasses view does not switch connectors. Connector changes stay in the phone plugin.
+
 ## Browser Usage
 
 The bundled Even plugin web app is served by the same bridge:
@@ -123,9 +137,9 @@ The packaged app uses the Even Hub SDK, persists the chosen bridge origin throug
 
 The current packaged UX now includes:
 
-- a phone-side connection dashboard with setup checklist, endpoint summaries, and refresh or reset controls
-- a glasses-side three-panel layout with readable status, detail cycling, and tap-to-refresh behavior
-- on-glasses prompts that make refresh, detail navigation, and exit behavior obvious
+- a phone-side connection dashboard with setup checklist, connector profiles, session libraries, and refresh controls
+- a glasses-side three-panel layout with readable status, detail cycling, and session switching inside the active connector
+- on-glasses prompts that make refresh, session switching, detail navigation, and exit behavior obvious
 
 The current submission bundle now also includes:
 
@@ -152,7 +166,7 @@ dashboard even-codex.start add <codex-session-id>
 dashboard even-codex.e2e start
 ```
 
-That brings up the Even bridge on port `6789`, serves the Hub app locally, and starts the Even simulator against that app by default.
+That brings up the Even bridge on port `6789`, serves the Hub app locally, and starts the Even simulator against that app by default. After that, the phone plugin can save more connector origins and more session ids without leaving the Even app.
 
 Edge-case example:
 

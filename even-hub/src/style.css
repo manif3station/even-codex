@@ -107,6 +107,23 @@ code {
   gap: 10px;
 }
 
+.profile-list,
+.session-list {
+  display: grid;
+  gap: 12px;
+}
+
+.profile-card,
+.session-card {
+  display: grid;
+  gap: 10px;
+}
+
+.button-row {
+  display: grid;
+  gap: 8px;
+}
+
 .button {
   width: 100%;
   padding: 11px 12px;
@@ -135,4 +152,16 @@ code {
   padding-left: 20px;
   display: grid;
   gap: 8px;
+}
+
+@media (min-width: 740px) {
+  .hero {
+    grid-template-columns: minmax(0, 1fr) 240px;
+    align-items: start;
+  }
+
+  .profile-list,
+  .session-list {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
 }
