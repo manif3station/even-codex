@@ -2,7 +2,7 @@
   "package_id": "com.ddskill.d2codex",
   "edition": "202601",
   "name": "D2-Codex",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "tagline": "Readable Codex status on Even glasses",
   "description": "Bridge a paired Codex session from Developer Dashboard onto the Even app and glasses with a guided phone-side setup flow and a readable on-glasses status layout.",
   "changelog": "Added stronger Even Hub runtime UX, submission assets, and governed listing metadata.",

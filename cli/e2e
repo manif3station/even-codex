@@ -1,0 +1,277 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+action="${1:-}"
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "${script_dir}/.." && pwd)"
+
+runtime_root="${EVEN_CODEX_RUNTIME_ROOT:-${HOME}/.developer-dashboard/state/even-codex}"
+e2e_root="${runtime_root}/e2e"
+bridge_pid_file="${EVEN_CODEX_E2E_BRIDGE_PID_FILE:-${e2e_root}/bridge.pid}"
+bridge_log_file="${EVEN_CODEX_E2E_BRIDGE_LOG_FILE:-${e2e_root}/bridge.log}"
+app_pid_file="${EVEN_CODEX_E2E_APP_PID_FILE:-${e2e_root}/app.pid}"
+app_log_file="${EVEN_CODEX_E2E_APP_LOG_FILE:-${e2e_root}/app.log}"
+app_dir="${EVEN_CODEX_E2E_APP_DIR:-${repo_root}/dist}"
+app_host="${EVEN_CODEX_E2E_APP_HOST:-127.0.0.1}"
+app_port="${EVEN_CODEX_E2E_APP_PORT:-4173}"
+app_url="http://${app_host}:${app_port}"
+bridge_port="${EVEN_CODEX_PORT:-6789}"
+bridge_probe_host="${EVEN_CODEX_E2E_BRIDGE_PROBE_HOST:-127.0.0.1}"
+advertised_host="${EVEN_CODEX_ADVERTISE_HOST:-127.0.0.1}"
+build_mode="${EVEN_CODEX_E2E_BUILD_MODE:-auto}"
+bridge_url="http://${advertised_host}:${bridge_port}"
+bootstrap_url="${bridge_url}/bootstrap"
+plugin_url="${bridge_url}/plugin/"
+simulator_url="${EVEN_CODEX_SIMULATOR_URL:-${app_url}}"
+
+mkdir -p "${e2e_root}"
+
+json_escape() {
+  perl -MJSON::PP=encode_json -e 'local $/; print encode_json(scalar <STDIN>)'
+}
+
+print_json() {
+  local action_value="$1"
+  local status_value="$2"
+  local bridge_pid_value="$3"
+  local app_pid_value="$4"
+  local bridge_pid_path="$5"
+  local bridge_log_path="$6"
+  local app_pid_path="$7"
+  local app_log_path="$8"
+  local bridge_url_value="$9"
+  local bootstrap_url_value="${10}"
+  local plugin_url_value="${11}"
+  local app_url_value="${12}"
+  local simulator_url_value="${13}"
+
+  printf '{'
+  printf '"action":"%s",' "${action_value}"
+  printf '"status":"%s",' "${status_value}"
+  printf '"bridge_pid":%s,' "${bridge_pid_value}"
+  printf '"app_pid":%s,' "${app_pid_value}"
+  printf '"bridge_pid_file":%s,' "$(printf '%s' "${bridge_pid_path}" | json_escape)"
+  printf '"bridge_log_file":%s,' "$(printf '%s' "${bridge_log_path}" | json_escape)"
+  printf '"app_pid_file":%s,' "$(printf '%s' "${app_pid_path}" | json_escape)"
+  printf '"app_log_file":%s,' "$(printf '%s' "${app_log_path}" | json_escape)"
+  printf '"bridge_url":%s,' "$(printf '%s' "${bridge_url_value}" | json_escape)"
+  printf '"bootstrap_url":%s,' "$(printf '%s' "${bootstrap_url_value}" | json_escape)"
+  printf '"plugin_url":%s,' "$(printf '%s' "${plugin_url_value}" | json_escape)"
+  printf '"app_url":%s,' "$(printf '%s' "${app_url_value}" | json_escape)"
+  printf '"simulator_url":%s' "$(printf '%s' "${simulator_url_value}" | json_escape)"
+  printf '}\n'
+}
+
+is_running() {
+  local pid="$1"
+  kill -0 "${pid}" 2>/dev/null
+}
+
+cleanup_pid_file() {
+  local pid_file="$1"
+  if [[ -f "${pid_file}" ]]; then
+    local existing_pid
+    existing_pid="$(cat "${pid_file}")"
+    if [[ -z "${existing_pid}" ]] || ! is_running "${existing_pid}"; then
+      rm -f "${pid_file}"
+    fi
+  fi
+}
+
+read_pid() {
+  local pid_file="$1"
+  if [[ -f "${pid_file}" ]]; then
+    cat "${pid_file}"
+  else
+    printf '0'
+  fi
+}
+
+wait_for_port() {
+  local host="$1"
+  local port="$2"
+  local label="$3"
+
+  for _ in $(seq 1 50); do
+    if bash -lc "exec 3<>/dev/tcp/${host}/${port}" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 0.1
+  done
+
+  printf 'Timed out waiting for %s on %s:%s\n' "${label}" "${host}" "${port}" >&2
+  return 1
+}
+
+find_python() {
+  if command -v python3 >/dev/null 2>&1; then
+    command -v python3
+    return 0
+  fi
+  if command -v python >/dev/null 2>&1; then
+    command -v python
+    return 0
+  fi
+  return 1
+}
+
+build_app_if_needed() {
+  local should_build=0
+
+  case "${build_mode}" in
+    skip)
+      return 0
+      ;;
+    always)
+      should_build=1
+      ;;
+    auto)
+      if [[ ! -f "${app_dir}/index.html" ]]; then
+        should_build=1
+      fi
+      ;;
+    *)
+      printf 'Unsupported EVEN_CODEX_E2E_BUILD_MODE: %s\n' "${build_mode}" >&2
+      return 2
+      ;;
+  esac
+
+  if [[ "${should_build}" -eq 0 ]]; then
+    return 0
+  fi
+
+  if [[ -n "${EVEN_CODEX_E2E_BUILD_CMD:-}" ]]; then
+    (cd "${repo_root}" && bash -lc "${EVEN_CODEX_E2E_BUILD_CMD}")
+    return 0
+  fi
+
+  (
+    cd "${repo_root}"
+    if [[ ! -d node_modules ]]; then
+      npm install
+    fi
+    npm run build:hub
+  )
+}
+
+start_bridge() {
+  : > "${bridge_log_file}"
+  nohup bash -lc "cd \"${repo_root}\" && exec \"${repo_root}/cli/start\"" >>"${bridge_log_file}" 2>&1 < /dev/null &
+  local pid="$!"
+  printf '%s' "${pid}" > "${bridge_pid_file}"
+  wait_for_port "${bridge_probe_host}" "${bridge_port}" "even-codex bridge"
+  printf '%s' "${pid}"
+}
+
+default_app_server_command() {
+  local python_bin
+  python_bin="$(find_python)" || {
+    printf 'python3 or python is required for dashboard even-codex.e2e start\n' >&2
+    return 2
+  }
+  printf 'exec "%s" -m http.server "%s" --bind "%s" --directory "%s"' "${python_bin}" "${app_port}" "${app_host}" "${app_dir}"
+}
+
+start_app_server() {
+  : > "${app_log_file}"
+  local app_server_cmd="${EVEN_CODEX_E2E_APP_SERVER_CMD:-}"
+  if [[ -z "${app_server_cmd}" ]]; then
+    app_server_cmd="$(default_app_server_command)"
+  fi
+
+  export EVEN_CODEX_E2E_APP_HOST="${app_host}"
+  export EVEN_CODEX_E2E_APP_PORT="${app_port}"
+  export EVEN_CODEX_E2E_APP_DIR="${app_dir}"
+  export EVEN_CODEX_E2E_APP_SERVER_BIN="${EVEN_CODEX_E2E_APP_SERVER_BIN:-}"
+  export EVEN_CODEX_E2E_APP_CAPTURE_FILE="${EVEN_CODEX_E2E_APP_CAPTURE_FILE:-}"
+  nohup bash -lc "${app_server_cmd}" >>"${app_log_file}" 2>&1 < /dev/null &
+  local pid="$!"
+  printf '%s' "${pid}" > "${app_pid_file}"
+  wait_for_port "${app_host}" "${app_port}" "Hub app server"
+  printf '%s' "${pid}"
+}
+
+stop_pid_file() {
+  local pid_file="$1"
+  if [[ ! -f "${pid_file}" ]]; then
+    return 1
+  fi
+
+  local pid
+  pid="$(cat "${pid_file}")"
+  if [[ -n "${pid}" ]] && is_running "${pid}"; then
+    kill "${pid}" 2>/dev/null || true
+    for _ in $(seq 1 20); do
+      if ! is_running "${pid}"; then
+        break
+      fi
+      sleep 0.1
+    done
+  fi
+
+  rm -f "${pid_file}"
+  return 0
+}
+
+start_e2e() {
+  cleanup_pid_file "${bridge_pid_file}"
+  cleanup_pid_file "${app_pid_file}"
+
+  if [[ -f "${bridge_pid_file}" && -f "${app_pid_file}" ]]; then
+    local existing_bridge_pid existing_app_pid
+    existing_bridge_pid="$(read_pid "${bridge_pid_file}")"
+    existing_app_pid="$(read_pid "${app_pid_file}")"
+    EVEN_CODEX_SIMULATOR_URL="${simulator_url}" "${repo_root}/cli/simulator" start >/dev/null
+    print_json "start" "already-running" "${existing_bridge_pid}" "${existing_app_pid}" "${bridge_pid_file}" "${bridge_log_file}" "${app_pid_file}" "${app_log_file}" "${bridge_url}" "${bootstrap_url}" "${plugin_url}" "${app_url}" "${simulator_url}"
+    return 0
+  fi
+
+  build_app_if_needed
+
+  local bridge_pid app_pid
+  bridge_pid="$(start_bridge)"
+  app_pid="$(start_app_server)"
+  EVEN_CODEX_SIMULATOR_URL="${simulator_url}" "${repo_root}/cli/simulator" start >/dev/null
+  print_json "start" "started" "${bridge_pid}" "${app_pid}" "${bridge_pid_file}" "${bridge_log_file}" "${app_pid_file}" "${app_log_file}" "${bridge_url}" "${bootstrap_url}" "${plugin_url}" "${app_url}" "${simulator_url}"
+}
+
+stop_e2e() {
+  cleanup_pid_file "${bridge_pid_file}"
+  cleanup_pid_file "${app_pid_file}"
+
+  local had_any=0
+  local bridge_pid app_pid
+  bridge_pid="$(read_pid "${bridge_pid_file}")"
+  app_pid="$(read_pid "${app_pid_file}")"
+
+  if stop_pid_file "${bridge_pid_file}"; then
+    had_any=1
+  fi
+  if stop_pid_file "${app_pid_file}"; then
+    had_any=1
+  fi
+  if EVEN_CODEX_SIMULATOR_URL="${simulator_url}" "${repo_root}/cli/simulator" stop >/dev/null; then
+    :
+  fi
+
+  if [[ "${had_any}" -eq 1 ]]; then
+    print_json "stop" "stopped" "${bridge_pid}" "${app_pid}" "${bridge_pid_file}" "${bridge_log_file}" "${app_pid_file}" "${app_log_file}" "${bridge_url}" "${bootstrap_url}" "${plugin_url}" "${app_url}" "${simulator_url}"
+    return 0
+  fi
+
+  print_json "stop" "not-running" 0 0 "${bridge_pid_file}" "${bridge_log_file}" "${app_pid_file}" "${app_log_file}" "${bridge_url}" "${bootstrap_url}" "${plugin_url}" "${app_url}" "${simulator_url}"
+}
+
+case "${action}" in
+  start)
+    start_e2e
+    ;;
+  stop)
+    stop_e2e
+    ;;
+  *)
+    printf 'Usage: dashboard even-codex.e2e {start|stop}\n' >&2
+    exit 2
+    ;;
+esac

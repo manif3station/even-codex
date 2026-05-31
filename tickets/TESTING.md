@@ -9,8 +9,8 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 ## Verified Result
 
 - verified on 2026-05-31
-- all 15 test files passed
-- 294 assertions passed
+- all 16 test files passed
+- 326 assertions passed
 - selected module statement coverage reached `100.0`
 - selected module subroutine coverage reached `100.0`
 - selected module branch coverage reached `100.0`
@@ -22,6 +22,7 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 - `t/13-even-hub-listing.t` proved the listing metadata, greyscale assets, and screenshot workflow files
 - `EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npx evenhub pack .even-hub-build/app.json dist -o dist/test-listing.ehpk` proved the richer manifest fields still pack
 - `t/14-simulator-cli.t` proved the bash simulator controller start and stop lifecycle
+- `t/15-e2e-cli.t` proved the one-command desktop E2E launcher starts the bridge, app server, and simulator flow together
 
 Coverage summary from the verified run:
 

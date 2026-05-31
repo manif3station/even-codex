@@ -1,5 +1,13 @@
 Revision history for even-codex
 
+0.07 2026-05-31
+    - add `dashboard even-codex.e2e {start,stop}` as a one-command desktop
+      orchestration flow for the DD bridge, local Hub app server, and Even
+      simulator
+    - support runtime pid and log tracking for the bridge and app server in
+      the E2E launcher
+    - document and verify the local desktop E2E flow in Docker
+
 0.06 2026-05-31
     - add `dashboard even-codex.simulator {start,stop}` as a bash CLI for
       local Even Hub simulator process control

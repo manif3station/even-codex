@@ -73,6 +73,15 @@ Override the target URL or automation port when needed:
 EVEN_CODEX_SIMULATOR_URL=http://127.0.0.1:4173 EVEN_CODEX_SIMULATOR_PORT=9898 dashboard even-codex.simulator start
 ```
 
+Start or stop the full local desktop E2E chain:
+
+```bash
+dashboard even-codex.e2e start
+dashboard even-codex.e2e stop
+```
+
+That one command path builds the Hub app when needed, starts the DD bridge, starts a local Hub app server, and points the Even simulator at that served app URL.
+
 ## Browser Usage
 
 The bundled Even plugin web app is served by the same bridge:
@@ -140,10 +149,10 @@ Inside Codex, ask for a reply and then inspect `/status`. Copy the reported sess
 
 ```bash
 dashboard even-codex.start add <codex-session-id>
-dashboard even-codex.start
+dashboard even-codex.e2e start
 ```
 
-That brings up the Even bridge on port `6789` by default.
+That brings up the Even bridge on port `6789`, serves the Hub app locally, and starts the Even simulator against that app by default.
 
 Edge-case example:
 

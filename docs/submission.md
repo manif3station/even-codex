@@ -45,6 +45,15 @@ EVEN_CODEX_SIMULATOR_URL=http://127.0.0.1:4173 dashboard even-codex.simulator st
 dashboard even-codex.simulator stop
 ```
 
+For the full desktop chain, use the shipped E2E orchestrator:
+
+```bash
+dashboard even-codex.e2e start
+dashboard even-codex.e2e stop
+```
+
+That path starts the local DD bridge, the local Hub app server, and the simulator together so the packaged `D2-Codex` flow can be exercised from one command on a desktop session.
+
 Capture the current screenshots:
 
 ```bash

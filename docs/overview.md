@@ -40,5 +40,6 @@ The submission layer now also ships with the repo:
 - monochrome icon and background assets in `even-hub/assets/`
 - a simulator-driven screenshot capture script for Hub screenshots
 - a local simulator control CLI for start and stop lifecycle management
+- a one-command desktop E2E CLI that launches the bridge, app server, and simulator together
 
 The full product specification still matters. The shipped runtime is only the first local bridge slice, and the broader relay-plus-plugin architecture is still described in `SPEC.md` for later tickets.

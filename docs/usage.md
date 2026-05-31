@@ -120,6 +120,46 @@ Proven control outputs:
 - `dashboard even-codex.simulator stop` returns `stopped` and removes the pid file
 - repeating `dashboard even-codex.simulator stop` returns `not-running`
 
+## Start Or Stop The Full Desktop E2E Flow
+
+Start the local desktop chain in one command:
+
+```bash
+dashboard even-codex.e2e start
+```
+
+This orchestration command:
+
+- builds the Hub app if `dist/index.html` is missing
+- starts the DD bridge on the configured local bridge port
+- starts a local Hub app server on port `4173` by default
+- points the Even simulator at that served Hub app URL
+
+Stop the whole chain:
+
+```bash
+dashboard even-codex.e2e stop
+```
+
+Useful override environment variables:
+
+- `EVEN_CODEX_E2E_BUILD_MODE`
+- `EVEN_CODEX_E2E_BUILD_CMD`
+- `EVEN_CODEX_E2E_APP_HOST`
+- `EVEN_CODEX_E2E_APP_PORT`
+- `EVEN_CODEX_E2E_APP_DIR`
+- `EVEN_CODEX_E2E_APP_SERVER_CMD`
+- `EVEN_CODEX_E2E_BRIDGE_PID_FILE`
+- `EVEN_CODEX_E2E_BRIDGE_LOG_FILE`
+- `EVEN_CODEX_E2E_APP_PID_FILE`
+- `EVEN_CODEX_E2E_APP_LOG_FILE`
+
+Proven control outputs:
+
+- `dashboard even-codex.e2e start` returns JSON with bridge pid, app pid, bridge URLs, and simulator URL
+- `dashboard even-codex.e2e stop` returns `stopped` after terminating the tracked bridge and app server processes
+- repeating `dashboard even-codex.e2e stop` returns `not-running`
+
 ## Phone-Side Even Use
 
 The phone-hosted Even app must not use laptop-local `127.0.0.1` unless it is actually running on that same device. For real phone-to-laptop use, advertise a LAN-reachable host:
