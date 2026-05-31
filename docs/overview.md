@@ -31,7 +31,8 @@ The packaged Even Hub app:
 - exposes a phone-side setup dashboard with connector profile management, session libraries, refresh, and pairing guidance
 - auto-refreshes the bridge transcript in the background so glasses and phone stay aligned with the current Codex turn
 - renders a three-container glasses layout for header refresh, detail cycling, and footer session switching
-- supports tap-to-refresh, tap-to-cycle, and tap-to-switch-session interactions from the glasses page
+- supports up or down detail navigation plus click and double-click interactions from the glasses page
+- includes a staged query composer with slash normalization and a glasses-side input pane for `Send`, `Retry`, and `Cancel`
 - handles root double-click exit with `bridge.shutDownPageContainer(1)`
 - packages through `evenhub pack` into `dist/d2-codex.ehpk`
 

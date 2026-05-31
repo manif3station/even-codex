@@ -8,7 +8,7 @@ use File::Path qw(make_path);
 use File::Spec;
 use JSON::PP qw(decode_json encode_json);
 
-our $VERSION = '0.12';
+our $VERSION = '0.15';
 
 sub config_root {
     my (%args) = @_;

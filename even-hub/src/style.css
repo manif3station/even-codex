@@ -147,6 +147,11 @@ code {
   font: inherit;
 }
 
+.input-area {
+  resize: vertical;
+  min-height: 96px;
+}
+
 .list {
   margin: 0;
   padding-left: 20px;

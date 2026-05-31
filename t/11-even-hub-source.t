@@ -24,16 +24,22 @@ like( $source, qr/waitForEvenAppBridge/, 'Even Hub source waits for the Even app
 like( $source, qr/createStartUpPageContainer/, 'Even Hub source creates a startup page container' );
 like( $source, qr/shutDownPageContainer\(1\)/, 'Even Hub source uses the documented root exit confirmation flow' );
 like( $source, qr/OsEventTypeList\.DOUBLE_CLICK_EVENT/, 'Even Hub source handles root double-click exit' );
+like( $source, qr/sysEventType === OsEventTypeList\.CLICK_EVENT/, 'Even Hub source handles simulator click gestures that arrive as system events' );
 like( $source, qr/OsEventTypeList\.FOREGROUND_ENTER_EVENT/, 'Even Hub source handles foreground enter' );
 like( $source, qr/OsEventTypeList\.FOREGROUND_EXIT_EVENT/, 'Even Hub source handles foreground exit' );
 like( $source, qr/OsEventTypeList\.ABNORMAL_EXIT_EVENT/, 'Even Hub source handles abnormal exit' );
 like( $source, qr/OsEventTypeList\.SYSTEM_EXIT_EVENT/, 'Even Hub source handles system exit' );
+like( $source, qr/OsEventTypeList\.SCROLL_TOP_EVENT/, 'Even Hub source handles upward glasses navigation events' );
+like( $source, qr/OsEventTypeList\.SCROLL_BOTTOM_EVENT/, 'Even Hub source handles downward glasses navigation events' );
 like( $source, qr/getLocalStorage/, 'Even Hub source remembers setup through SDK local storage' );
 like( $source, qr/setLocalStorage/, 'Even Hub source persists setup through SDK local storage' );
 like( $source, qr/setInterval/, 'Even Hub source schedules background bridge refreshes' );
+like( $source, qr/normalizeDraftQuery/, 'Even Hub source normalizes staged query input' );
+like( $source, qr/handleDetailClick/, 'Even Hub source centralizes detail-pane click handling' );
 
 my $style = slurp('even-hub/src/style.css');
 unlike( $style, qr/background(?:-color)?\s*:/i, 'Even Hub source styles avoid background fill declarations' );
 like( $style, qr/border:/i, 'Even Hub source styles use borders for structure' );
+like( $style, qr/\.input-area\b/, 'Even Hub source styles include the staged query textarea layout' );
 
 done_testing;

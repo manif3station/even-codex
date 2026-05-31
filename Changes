@@ -1,5 +1,13 @@
 Revision history for even-codex
 
+0.15 2026-05-31
+    - add a staged query composer with slash normalization so `Slash ...`
+      becomes `/...` before the simulator flow stages the next Codex query
+    - make the glasses-side input flow accept simulator click gestures that
+      surface as system events and keep `Send`, `Retry`, and `Cancel` visible
+    - prove the release with fresh noVNC screenshots for `hi -> Hi`, staged
+      query state, and glasses-side action cycling outside the Perl `.t` suite
+
 0.12 2026-05-31
     - run the Dockerized simulator desktop as the caller's host uid and gid by
       default so the mounted `~/.codex` tree is not rewritten by `root`

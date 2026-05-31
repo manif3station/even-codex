@@ -10,7 +10,7 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 
 - verified on 2026-05-31
 - all 20 test files passed
-- 455 assertions passed
+- 477 assertions passed
 - selected module statement coverage reached `100.0`
 - selected module subroutine coverage reached `100.0`
 - selected module branch coverage reached `100.0`
@@ -31,6 +31,8 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
   - the Codex xterm with `hi` and `Hi`
   - the Even plugin with `Latest Prompt hi` and `Latest Reply Hi`
   - the glasses view with `Prompt hi` and `Reply Hi`
+  - the staged input flow with `slash ship status` normalized to `/ship status`
+  - the glasses-side action selector moving through `Send`, `Retry`, and `Cancel`
 
 Coverage summary from the verified run:
 

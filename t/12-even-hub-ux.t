@@ -22,19 +22,30 @@ like( $source, qr/Session Library/, 'phone UI exposes saved session management' 
 like( $source, qr/Port 6789/, 'phone UI explains the default bridge port' );
 like( $source, qr/Latest Prompt/, 'phone UI exposes the latest prompt transcript panel' );
 like( $source, qr/Latest Reply/, 'phone UI exposes the latest reply transcript panel' );
+like( $source, qr/Query Composer/, 'phone UI exposes a staged query composer section' );
+like( $source, qr/data-role="stage-query-button"/, 'phone UI exposes a stage query control' );
+like( $source, qr/data-role="send-query-button"/, 'phone UI exposes a send query control' );
+like( $source, qr/data-role="retry-query-button"/, 'phone UI exposes a retry query control' );
+like( $source, qr/data-role="cancel-query-button"/, 'phone UI exposes a cancel query control' );
+like( $source, qr/data-role="load-slash-sample-button"/, 'phone UI exposes a slash-sample helper for simulator proof' );
+like( $source, qr/data-role="load-latest-prompt-button"/, 'phone UI exposes a latest-prompt helper for staged input reuse' );
+like( $source, qr/starts with <code>Slash<\/code>|normalize/i, 'phone UI explains slash normalization for staged queries' );
 like( $source, qr/\/session/, 'source fetches the live transcript route' );
 like( $source, qr/refreshBootstrap/, 'source centralizes bridge refresh work' );
 like( $source, qr/quiet:\s*true/, 'source uses a quiet background refresh path for live transcript updates' );
 like( $source, qr/rebuildPageContainer/, 'source rebuilds the glasses page for richer UI updates' );
 like( $source, qr/OsEventTypeList\.CLICK_EVENT/, 'source handles click events for glasses interaction' );
+like( $source, qr/sysEventType === OsEventTypeList\.CLICK_EVENT/, 'source accepts simulator click gestures that surface as system events' );
 like( $source, qr/textEvent\?->\{?containerID|\btextEvent\b/, 'source reacts to Even text events from glasses containers' );
-like( $source, qr/Tap detail to cycle/, 'glasses UI explains how to navigate detail panes' );
-like( $source, qr/Refresh and switch from phone/, 'glasses UI explains that refresh and session switching stay on the phone plugin' );
+like( $source, qr/Up and Down cycle the focused detail pane/, 'phone UI explains up and down glasses navigation' );
+like( $source, qr/Click focuses the current detail pane/, 'phone UI explains click-to-focus behavior' );
+like( $source, qr/Double-click restores the split layout/, 'phone UI explains double-click restore behavior' );
 
 my $style = slurp('even-hub/src/style.css');
 like( $style, qr/\.panel\b/, 'styles define richer panel sections' );
 like( $style, qr/\.metric-grid\b/, 'styles define a metric grid layout' );
 like( $style, qr/\.action-row\b/, 'styles define an action row layout' );
 like( $style, qr/\.profile-list\b/, 'styles define connector profile layouts' );
+like( $style, qr/\.input-area\b/, 'styles define the staged query input area' );
 
 done_testing;

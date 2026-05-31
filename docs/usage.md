@@ -109,6 +109,7 @@ The default start flow now:
 - injects the active workspace pairing into the containerized bridge chain
 - starts the DD web server, local bridge, Hub app server, and Even simulator without extra host setup
 - opens the paired Codex session in a visible xterm window through the real bundled Codex CLI binary
+- exposes the Even simulator automation API on port `19898` so the glasses `up`, `down`, `click`, and `double_click` controls can be driven in governed E2E checks
 
 Useful override environment variables for Docker mode:
 
@@ -145,6 +146,7 @@ Review the screenshot manually or with an LLM image check. The release gate is o
 - the Codex xterm with `hi` and `Hi`
 - the phone-side Even plugin with `Latest Prompt hi` and `Latest Reply Hi`
 - the glasses view with `Prompt hi` and `Reply Hi`
+- the normalized staged query flow, including `/ship status` in the plugin and the glasses-side `Send`, `Retry`, or `Cancel` selector state
 
 If you want the older host-local process mode instead of Docker, force it explicitly:
 
@@ -237,6 +239,14 @@ Inside `D2-Codex`, the phone-side plugin now gives the user:
 - readable bridge endpoint summaries
 - live transcript panels for the latest prompt and latest reply
 - background polling that refreshes the latest prompt and reply without a manual page reload
+- a staged query composer that turns a leading `Slash` or `slash` into `/`
+- explicit `Send`, `Retry`, and `Cancel` controls for the staged query flow
+
+Inside the glasses view, the same build now gives the user:
+
+- up and down pane navigation
+- click-to-focus and double-click-to-restore behavior
+- an input pane that exposes the normalized draft plus `Send`, `Retry`, and `Cancel`
 
 On the glasses page, the current controls are:
 

@@ -104,6 +104,8 @@ Inside the glasses view, the user can:
 - switch between saved sessions for the active connector
 - refresh the active connector
 - cycle detail panes
+- focus the active detail pane and restore the split layout with glasses clicks
+- stage a normalized query and cycle `Send`, `Retry`, or `Cancel` from the glasses input pane
 
 The glasses view does not switch connectors. Connector changes stay in the phone plugin.
 
@@ -153,6 +155,8 @@ The current packaged UX now includes:
 - a glasses-side three-panel layout with readable status, detail cycling, and session switching inside the active connector
 - automatic background transcript refresh so the phone-side plugin and glasses view catch up to live Codex turns without a manual reload
 - on-glasses prompts that make refresh, session switching, detail navigation, and exit behavior obvious
+- a phone-side staged query composer that normalizes leading `Slash` or `slash` into `/`
+- a glasses-side input pane that exposes `Send`, `Retry`, and `Cancel` action cycling
 
 The current submission bundle now also includes:
 
@@ -182,6 +186,7 @@ dashboard even-codex.e2e start
 
 That brings up the Even bridge on port `6789`, serves the Hub app locally, and starts the Even simulator against that app by default. After that, the phone plugin can save more connector origins and more session ids without leaving the Even app.
 In the Dockerized noVNC desktop, the Codex xterm, the phone-side Even plugin, and the glasses view all reflect the paired session transcript. A live `hi -> Hi` smoke run has been proven end to end through fresh screenshot review of the running simulator desktop.
+The same simulator flow now also proves the staged query path: `slash ship status` is normalized to `/ship status`, shown in the phone plugin, and cycled through glasses-side input actions.
 
 Edge-case example:
 

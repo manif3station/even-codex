@@ -8,7 +8,9 @@ import {
   waitForEvenAppBridge,
 } from '@evenrealities/even_hub_sdk';
 
-type DetailMode = 'summary' | 'network' | 'steps';
+type DetailMode = 'summary' | 'network' | 'conversation' | 'input';
+type GlassesLayoutMode = 'split' | 'focus';
+type InputAction = 'send' | 'retry' | 'cancel';
 
 type SessionRecord = {
   id: string;
@@ -45,8 +47,13 @@ type PluginState = {
   lifecycle: string;
   bridgeStatus: 'connected' | 'offline';
   detailMode: DetailMode;
+  glassesLayoutMode: GlassesLayoutMode;
+  selectedInputAction: InputAction;
   lastMessage: string;
   lastCheckedAt: string;
+  draftQuery: string;
+  stagedQuery: string;
+  lastSubmittedQuery: string;
 };
 
 type BootstrapPayload = {
@@ -110,16 +117,58 @@ async function boot() {
 
   bridge.onEvenHubEvent(async (event) => {
     const sysEventType = event.sysEvent?.eventType;
+    if (sysEventType === OsEventTypeList.DOUBLE_CLICK_EVENT && state.glassesLayoutMode === 'focus') {
+      state.glassesLayoutMode = 'split';
+      state.lastMessage = 'Glasses layout restored to the three-pane view.';
+      renderPhoneUi(state);
+      await syncGlassesPage(bridge, state);
+      return;
+    }
+
     if (sysEventType === OsEventTypeList.DOUBLE_CLICK_EVENT) {
       await bridge.shutDownPageContainer(1);
       return;
     }
 
+    if (sysEventType === OsEventTypeList.CLICK_EVENT) {
+      if (handleDetailClick(state)) {
+        renderPhoneUi(state);
+        await syncGlassesPage(bridge, state);
+        return;
+      }
+    }
+
     const textEvent = event.textEvent;
     if (textEvent?.eventType === OsEventTypeList.CLICK_EVENT) {
-      if (textEvent.containerID === GLASSES_CONTAINER.detail) {
-        state.detailMode = nextDetailMode(state.detailMode);
-        state.lastMessage = `Showing ${state.detailMode} view on glasses.`;
+      if (textEvent.containerID === GLASSES_CONTAINER.detail && handleDetailClick(state)) {
+        renderPhoneUi(state);
+        await syncGlassesPage(bridge, state);
+        return;
+      }
+    }
+
+    if (textEvent?.containerID === GLASSES_CONTAINER.detail) {
+      if (textEvent.eventType === OsEventTypeList.SCROLL_TOP_EVENT) {
+        if (state.detailMode === 'input') {
+          state.selectedInputAction = previousInputAction(state.selectedInputAction);
+          state.lastMessage = `Selected ${state.selectedInputAction} for the staged query.`;
+        } else {
+          state.detailMode = previousDetailMode(state.detailMode);
+          state.lastMessage = `Showing ${state.detailMode} view on glasses.`;
+        }
+        renderPhoneUi(state);
+        await syncGlassesPage(bridge, state);
+        return;
+      }
+
+      if (textEvent.eventType === OsEventTypeList.SCROLL_BOTTOM_EVENT) {
+        if (state.detailMode === 'input') {
+          state.selectedInputAction = nextInputAction(state.selectedInputAction);
+          state.lastMessage = `Selected ${state.selectedInputAction} for the staged query.`;
+        } else {
+          state.detailMode = nextDetailMode(state.detailMode);
+          state.lastMessage = `Showing ${state.detailMode} view on glasses.`;
+        }
         renderPhoneUi(state);
         await syncGlassesPage(bridge, state);
         return;
@@ -180,6 +229,22 @@ async function boot() {
       state.lastMessage = `Saved session ${sessionId} on ${getActiveConnector(state)?.name || 'the active connector'}.`;
       renderPhoneUi(state);
       await syncGlassesPage(bridge, state);
+      return;
+    }
+
+    if (form.dataset.role === 'query-form') {
+      submitEvent.preventDefault();
+      const formData = new FormData(form);
+      const query = normalizeDraftQuery(String(formData.get('draftQuery') || ''));
+      state.draftQuery = query;
+      state.stagedQuery = query;
+      state.detailMode = 'input';
+      state.selectedInputAction = 'send';
+      state.lastMessage = query
+        ? `Staged query ready. Use Send, Retry, or Cancel.`
+        : 'Type or dictate a query before staging it.';
+      renderPhoneUi(state);
+      await syncGlassesPage(bridge, state);
     }
   });
 
@@ -219,6 +284,61 @@ async function boot() {
     if (role === 'cycle-button') {
       state.detailMode = nextDetailMode(state.detailMode);
       state.lastMessage = `Phone-side detail view switched to ${state.detailMode}.`;
+      renderPhoneUi(state);
+      await syncGlassesPage(bridge, state);
+      return;
+    }
+
+    if (role === 'stage-query-button') {
+      const form = app.querySelector<HTMLFormElement>('form[data-role="query-form"]');
+      form?.requestSubmit();
+      return;
+    }
+
+    if (role === 'load-slash-sample-button') {
+      state.draftQuery = 'slash ship status';
+      state.lastMessage = 'Loaded a slash-prefixed sample query for simulator verification.';
+      renderPhoneUi(state);
+      await syncGlassesPage(bridge, state);
+      return;
+    }
+
+    if (role === 'load-latest-prompt-button') {
+      const activeConnector = getActiveConnector(state);
+      state.draftQuery = activeConnector.lastUserMessage || state.lastSubmittedQuery || '';
+      state.lastMessage = state.draftQuery
+        ? 'Loaded the latest prompt into the draft composer.'
+        : 'There is no latest prompt to reuse yet.';
+      renderPhoneUi(state);
+      await syncGlassesPage(bridge, state);
+      return;
+    }
+
+    if (role === 'send-query-button') {
+      const input = app.querySelector<HTMLTextAreaElement>('#draftQuery');
+      state.draftQuery = normalizeDraftQuery(input?.value || state.draftQuery);
+      state.stagedQuery = state.draftQuery;
+      state.selectedInputAction = 'send';
+      applyInputAction(state);
+      renderPhoneUi(state);
+      await syncGlassesPage(bridge, state);
+      return;
+    }
+
+    if (role === 'retry-query-button') {
+      const input = app.querySelector<HTMLTextAreaElement>('#draftQuery');
+      state.draftQuery = normalizeDraftQuery(input?.value || state.draftQuery || state.lastSubmittedQuery);
+      state.stagedQuery = state.draftQuery;
+      state.selectedInputAction = 'retry';
+      applyInputAction(state);
+      renderPhoneUi(state);
+      await syncGlassesPage(bridge, state);
+      return;
+    }
+
+    if (role === 'cancel-query-button') {
+      state.selectedInputAction = 'cancel';
+      applyInputAction(state);
       renderPhoneUi(state);
       await syncGlassesPage(bridge, state);
       return;
@@ -289,8 +409,13 @@ function createInitialState(config: StoredConfig): PluginState {
     lifecycle: 'ready',
     bridgeStatus: 'offline',
     detailMode: 'summary',
+    glassesLayoutMode: 'split',
+    selectedInputAction: 'send',
     lastMessage: 'Waiting for the D2-Codex bridge bootstrap.',
     lastCheckedAt: 'Not checked yet',
+    draftQuery: '',
+    stagedQuery: '',
+    lastSubmittedQuery: '',
   };
 }
 
@@ -352,6 +477,9 @@ function renderPhoneUi(state: PluginState) {
   const connector = getActiveConnector(state);
   const activeSession = getActiveSession(state);
   const sessionCount = connector.sessions.length;
+  const normalizedDraft = escapeHtml(state.draftQuery);
+  const stagedQuery = escapeHtml(state.stagedQuery || 'No staged query.');
+  const submittedQuery = escapeHtml(state.lastSubmittedQuery || 'No query sent from the plugin yet.');
 
   app!.innerHTML = `
     <section class="shell">
@@ -397,12 +525,40 @@ function renderPhoneUi(state: PluginState) {
             <p class="label">Latest Reply</p>
             <p class="value">${escapeHtml(connector.lastAssistantMessage || 'No reply yet.')}</p>
           </article>
+          <article class="panel">
+            <p class="label">Staged Query</p>
+            <p class="value">${stagedQuery}</p>
+          </article>
+          <article class="panel">
+            <p class="label">Last Sent From Plugin</p>
+            <p class="value">${submittedQuery}</p>
+          </article>
         </section>
 
         <section class="action-row">
           <button class="button" type="button" data-role="refresh-button">Refresh Connection</button>
           <button class="button" type="button" data-role="cycle-button">Cycle Glasses Detail</button>
           <button class="button" type="button" data-role="cycle-session-button">Next Glasses Session</button>
+        </section>
+
+        <section class="panel stack">
+          <h2 class="section-title">Query Composer</h2>
+          <p class="copy">The current Even SDK does not document a native hold-to-dictate sheet, so the simulator flow stages input in the phone plugin first. Any query that starts with <code>Slash</code> or <code>slash</code> is normalized to <code>/</code>.</p>
+          <form class="form" data-role="query-form">
+            <label class="label" for="draftQuery">Draft Query</label>
+            <textarea class="input input-area" id="draftQuery" name="draftQuery" rows="4" placeholder="Type or paste the next Codex query here.">${normalizedDraft}</textarea>
+            <p class="hint">Stage the query first, then choose Send, Retry, or Cancel. The live simulator review checks this state visually.</p>
+            <div class="action-row">
+              <button class="button" type="button" data-role="load-slash-sample-button">Load Slash Sample</button>
+              <button class="button" type="button" data-role="load-latest-prompt-button">Reuse Latest Prompt</button>
+            </div>
+            <div class="action-row">
+              <button class="button" type="button" data-role="stage-query-button">Stage Query</button>
+              <button class="button" type="button" data-role="send-query-button">Send</button>
+              <button class="button" type="button" data-role="retry-query-button">Retry</button>
+              <button class="button" type="button" data-role="cancel-query-button">Cancel</button>
+            </div>
+          </form>
         </section>
 
         <section class="panel stack">
@@ -463,9 +619,9 @@ function renderPhoneUi(state: PluginState) {
         <section class="panel stack">
           <h2 class="section-title">Glasses Controls</h2>
           <ul class="list">
-            <li>Tap detail to cycle between summary, network, and conversation views.</li>
-            <li>Use the phone plugin to refresh the connector and switch sessions.</li>
-            <li>Double-click to exit.</li>
+            <li>Up and Down cycle the focused detail pane, or change the selected input action while the input pane is open.</li>
+            <li>Click focuses the current detail pane, and clicking the input pane applies the selected action.</li>
+            <li>Double-click restores the split layout, or exits when already in split view.</li>
           </ul>
           <p class="status">${escapeHtml(state.lastMessage)}</p>
         </section>
@@ -541,6 +697,10 @@ async function syncGlassesPage(
 }
 
 function buildTextObjects(state: PluginState) {
+  const detailHeight = state.glassesLayoutMode === 'focus' ? 210 : 136;
+  const footerY = state.glassesLayoutMode === 'focus' ? 0 : 220;
+  const footerHeight = state.glassesLayoutMode === 'focus' ? 0 : 68;
+
   return [
     new TextContainerProperty({
       xPosition: 0,
@@ -559,7 +719,7 @@ function buildTextObjects(state: PluginState) {
       xPosition: 0,
       yPosition: 78,
       width: 576,
-      height: 136,
+      height: detailHeight,
       borderWidth: 1,
       borderColor: 5,
       paddingLength: 8,
@@ -570,15 +730,15 @@ function buildTextObjects(state: PluginState) {
     }),
     new TextContainerProperty({
       xPosition: 0,
-      yPosition: 220,
+      yPosition: footerY,
       width: 576,
-      height: 68,
+      height: footerHeight,
       borderWidth: 1,
       borderColor: 5,
       paddingLength: 8,
       containerID: GLASSES_CONTAINER.footer,
       containerName: 'd2-codex-footer',
-      content: buildFooterText(state),
+      content: state.glassesLayoutMode === 'focus' ? '' : buildFooterText(state),
       isEventCapture: 0,
     }),
   ];
@@ -589,7 +749,7 @@ function buildHeaderText(state: PluginState) {
   return [
     'D2-Codex',
     `${state.bridgeStatus.toUpperCase()}  ${truncate(connector.name, 20)}`,
-    truncate(`Workspace ${connector.workspaceRef}`, 24),
+    truncate(`Layout ${state.glassesLayoutMode} · ${connector.workspaceRef}`, 28),
   ].join('\n');
 }
 
@@ -601,16 +761,25 @@ function buildDetailText(state: PluginState) {
       'Network',
       truncate(`Host ${connector.advertisedHost}:${connector.port}`, 34),
       truncate(`Origin ${connector.origin}`, 34),
-      'Tap detail to cycle',
+      'Up/down changes pane · click focus',
     ].join('\n');
   }
 
-  if (state.detailMode === 'steps') {
+  if (state.detailMode === 'conversation') {
     return [
       'Conversation',
       truncate(`Prompt ${connector.lastUserMessage || 'No prompt yet.'}`, 34),
       truncate(`Reply ${connector.lastAssistantMessage || 'No reply yet.'}`, 34),
-      'Tap detail to cycle',
+      'Up/down changes pane · click focus',
+    ].join('\n');
+  }
+
+  if (state.detailMode === 'input') {
+    return [
+      'Input',
+      truncate(`Draft ${state.stagedQuery || state.lastSubmittedQuery || 'No staged query.'}`, 34),
+      truncate(`Action ${state.selectedInputAction.toUpperCase()}`, 34),
+      'Up/down action · click apply',
     ].join('\n');
   }
 
@@ -618,7 +787,7 @@ function buildDetailText(state: PluginState) {
     'Summary',
     truncate(`Reply ${connector.lastAssistantMessage || 'No reply yet.'}`, 34),
     truncate(`Workspace ${connector.workspaceRef}`, 34),
-    'Tap detail to cycle',
+    'Up/down changes pane · click focus',
   ].join('\n');
 }
 
@@ -627,8 +796,8 @@ function buildFooterText(state: PluginState) {
   return [
     `Prompt ${truncate(connector.lastUserMessage || 'No prompt yet.', 25)}`,
     `Checked ${state.lastCheckedAt}`,
-    'Refresh and switch from phone',
-    'Double-click to exit',
+    `Staged ${truncate(state.stagedQuery || 'No staged query.', 22)}`,
+    'Double-click restore or exit',
   ].join('\n');
 }
 
@@ -647,10 +816,101 @@ function nextDetailMode(current: DetailMode): DetailMode {
   }
 
   if (current === 'network') {
-    return 'steps';
+    return 'conversation';
+  }
+
+  if (current === 'conversation') {
+    return 'input';
   }
 
   return 'summary';
+}
+
+function previousDetailMode(current: DetailMode): DetailMode {
+  if (current === 'summary') {
+    return 'input';
+  }
+
+  if (current === 'network') {
+    return 'summary';
+  }
+
+  if (current === 'conversation') {
+    return 'network';
+  }
+
+  return 'conversation';
+}
+
+function nextInputAction(current: InputAction): InputAction {
+  if (current === 'send') {
+    return 'retry';
+  }
+
+  if (current === 'retry') {
+    return 'cancel';
+  }
+
+  return 'send';
+}
+
+function previousInputAction(current: InputAction): InputAction {
+  if (current === 'send') {
+    return 'cancel';
+  }
+
+  if (current === 'retry') {
+    return 'send';
+  }
+
+  return 'retry';
+}
+
+function handleDetailClick(state: PluginState) {
+  if (state.detailMode === 'input') {
+    applyInputAction(state);
+    return true;
+  }
+
+  state.glassesLayoutMode = state.glassesLayoutMode === 'split' ? 'focus' : 'split';
+  state.lastMessage = state.glassesLayoutMode === 'focus'
+    ? `Focused the ${state.detailMode} pane on glasses.`
+    : 'Glasses layout restored to the three-pane view.';
+  return true;
+}
+
+function applyInputAction(state: PluginState) {
+  const normalized = normalizeDraftQuery(state.stagedQuery || state.draftQuery || state.lastSubmittedQuery);
+
+  if (state.selectedInputAction === 'cancel') {
+    state.draftQuery = '';
+    state.stagedQuery = '';
+    state.detailMode = 'summary';
+    state.glassesLayoutMode = 'split';
+    state.lastMessage = 'Cancelled the staged query.';
+    return;
+  }
+
+  if (state.selectedInputAction === 'retry') {
+    state.draftQuery = normalized;
+    state.stagedQuery = normalized;
+    state.detailMode = 'input';
+    state.glassesLayoutMode = 'split';
+    state.lastMessage = 'Retry selected. Update the draft and stage it again.';
+    return;
+  }
+
+  if (!normalized) {
+    state.lastMessage = 'Cannot send an empty staged query.';
+    return;
+  }
+
+  state.lastSubmittedQuery = normalized;
+  state.stagedQuery = normalized;
+  state.draftQuery = normalized;
+  state.detailMode = 'conversation';
+  state.glassesLayoutMode = 'split';
+  state.lastMessage = `Queued query from the plugin: ${normalized}`;
 }
 
 function cycleSession(state: PluginState) {
@@ -873,6 +1133,11 @@ function normalizeOrigin(value: string) {
   }
 
   return parsed.origin;
+}
+
+function normalizeDraftQuery(value: string) {
+  const trimmed = value.trim().replace(/\s+/g, ' ');
+  return trimmed.replace(/^(slash)\s+/i, '/');
 }
 
 function formatError(error: unknown) {
