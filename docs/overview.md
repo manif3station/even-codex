@@ -1,15 +1,23 @@
 # Overview
 
-`even-codex` is currently a governed specification-first skill repository.
+`even-codex` now ships the first runnable LAN bridge slice for the larger Even-to-Codex system.
 
-The purpose of this first ticket is to freeze the production architecture before implementation begins. The repository records the required three-part system:
+The repository currently contains two working application layers inside the governed skill repo:
 
-- the local DD bridge skill
-- the reachable relay service
-- the Even Hub plugin
+- the DD-side connector runtime
+- the bundled Even plugin web app
 
-This avoids building a false direct-connect design between the phone-hosted Even runtime and a laptop-local DD route.
+The connector runtime:
 
-The specification now also records a supported LAN-only deployment mode. That mode allows the bridge or relay to stay on a private local network, but it still must be reachable from the phone runtime and must not be treated as laptop-local `localhost`.
+- stores a workspace-to-Codex session pairing
+- resolves that pairing from the current `WORKSPACE_REF` or `TICKET_REF`
+- starts a local HTTP bridge on `0.0.0.0:6789` by default
+- exposes `/health`, `/bootstrap`, and `/plugin/`
 
-The repository now also contains the first runtime protocol contract in `lib/Even/Codex/Protocol.pm`. That module freezes the initial event catalog, required event fields, supported Even command set, and deployment modes so later runtime tickets can build against an explicit in-repo contract.
+The bundled plugin:
+
+- is served directly by the connector
+- fetches the connector bootstrap payload from `/bootstrap`
+- renders the paired workspace ref, Codex session id, host, and port for the phone-hosted Even app flow
+
+The full product specification still matters. The shipped runtime is only the first local bridge slice, and the broader relay-plus-plugin architecture is still described in `SPEC.md` for later tickets.

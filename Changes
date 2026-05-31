@@ -1,5 +1,13 @@
 Revision history for even-codex
 
+0.02 2026-05-31
+    - add a runnable LAN bridge slice with workspace-to-Codex pairing through
+      `dashboard even-codex.start add <codex-session-id>`
+    - add `dashboard even-codex.start` to serve the Even connector on port
+      `6789` by default with `/health`, `/bootstrap`, and `/plugin/`
+    - bundle the first Even plugin web app inside the skill repo and verify it
+      with Docker tests and Playwright
+
 0.01 2026-05-31
     - bootstrap governed even-codex skill repository
     - add production software specification in SPEC.md

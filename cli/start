@@ -1,0 +1,10 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+
+use FindBin qw($Bin);
+use lib "$Bin/../lib";
+
+use Even::Codex::Manager ();
+
+exit Even::Codex::Manager->main_start(@ARGV);

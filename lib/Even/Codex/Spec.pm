@@ -3,7 +3,7 @@ package Even::Codex::Spec;
 use strict;
 use warnings;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 sub skill_name {
     return 'even-codex';
@@ -14,7 +14,7 @@ sub spec_path {
 }
 
 sub installation_status {
-    return 'spec-only';
+    return 'lan-bridge-runtime';
 }
 
 sub required_sections {

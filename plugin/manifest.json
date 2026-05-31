@@ -1,0 +1,7 @@
+{
+  "id": "even-codex-plugin",
+  "name": "Even Codex",
+  "version": "0.02",
+  "start_url": "/plugin/",
+  "bootstrap_path": "/bootstrap"
+}

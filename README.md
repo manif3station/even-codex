@@ -4,7 +4,11 @@
 
 It solves the gap between a phone-hosted Even plugin and a machine-hosted Codex TUI. The glasses can display and control short Codex interactions, but the Even SDK runs inside the Even mobile app WebView and cannot rely on a laptop-local `localhost` route. This skill defines the production bridge contract that will connect those systems cleanly.
 
-The current repository state is specification-first. It does not yet ship the live bridge implementation. It ships the governed software specification, project-management records, and verification around the specification metadata so future tickets can implement against a stable contract.
+The repository now ships the first runnable LAN bridge slice in addition to the governed specification. It includes:
+
+- a DD-side connector that pairs a workspace ref to a Codex session id
+- a local HTTP bridge that listens on port `6789` by default
+- a bundled Even plugin web app served from that same bridge under `/plugin/`
 
 The skill will add:
 
@@ -14,59 +18,94 @@ The skill will add:
 
 What it does right now:
 
-- records the production architecture for the `even-codex` system
+- records the production architecture for the full `even-codex` system
 - records the supported private local-network deployment mode for the Even plugin bridge
-- defines the MVP scope, non-goals, interfaces, security constraints, and rollout phases
-- exposes the first runtime protocol contract module for event types, command names, and deployment modes
-- captures the repository and release rules for future implementation tickets
+- exposes the runtime protocol contract module for event types, command names, and deployment modes
+- stores workspace-to-Codex session pairings through `dashboard even-codex.start add <codex-session-id>`
+- starts a LAN bridge through `dashboard even-codex.start`
+- serves machine-readable `/health` and `/bootstrap` routes plus the bundled Even plugin web app under `/plugin/`
 
 ## Installation
 
-Implementation is not installable yet. The intended install shape after implementation is:
+Install the skill into Developer Dashboard:
 
 ```bash
-dashboard skills install even-codex
+dashboard skills install ~/projects/skills/skills/even-codex
 ```
-
-Until the runtime exists, this repository should be treated as the governed design source for that future skill.
 
 ## CLI Usage
 
-There is no end-user CLI workflow yet. This bootstrap release is documentation-first and does not expose a live `dashboard even-codex.*` command.
-
-Development-facing example:
+Pair the current workspace ref to the Codex session id you copied from `/status`:
 
 ```bash
-perl -Ilib -MEven::Codex::Protocol -E 'say for Even::Codex::Protocol::event_types()'
+dashboard even-codex.start add <codex-session-id>
+```
+
+Start the LAN bridge:
+
+```bash
+dashboard even-codex.start
+```
+
+The default listener is:
+
+```text
+http://127.0.0.1:6789
+```
+
+For phone-side Even use, point the phone app at a LAN-reachable host name or private IP instead of `127.0.0.1`. Override the advertised host when needed:
+
+```bash
+EVEN_CODEX_ADVERTISE_HOST=192.168.1.20 dashboard even-codex.start
 ```
 
 ## Browser Usage
 
-There is no browser route yet. Browser-facing behavior will arrive in later tickets after the DD bridge and Even plugin runtime are implemented.
+The bundled Even plugin web app is served by the same bridge:
+
+```text
+http://127.0.0.1:6789/plugin/
+```
+
+The plugin reads `/bootstrap` and shows:
+
+- the paired workspace ref
+- the paired Codex session id
+- the bridge host and port
+- the bootstrap endpoint
 
 ## Examples
 
 Normal-case example:
 
 ```bash
-dashboard skills install even-codex
+cd ~/project/foobar
+dashboard workspace foobar
+codex
 ```
 
-This is the intended future installation flow once the implementation tickets are complete.
+Inside Codex, ask for a reply and then inspect `/status`. Copy the reported session id and pair it:
+
+```bash
+dashboard even-codex.start add <codex-session-id>
+dashboard even-codex.start
+```
+
+That brings up the Even bridge on port `6789` by default.
 
 Edge-case example:
 
 ```bash
-cd ~/projects/skills/skills/even-codex
-sed -n '1,200p' SPEC.md
+EVEN_CODEX_HOST=0.0.0.0 EVEN_CODEX_PORT=6790 EVEN_CODEX_ADVERTISE_HOST=192.168.1.20 dashboard even-codex.start
 ```
 
-Use the specification directly when planning implementation, relay deployment, or test coverage for the future runtime.
+Use this when the phone-hosted Even app must connect to a different LAN host or port than the defaults.
 
 ## Documentation
 
 - [Specification](SPEC.md)
 - [Overview](docs/overview.md)
+- [Usage](docs/usage.md)
 
 ## License
 

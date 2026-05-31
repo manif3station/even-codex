@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Even Codex Bridge</title>
+  <link rel="stylesheet" href="/plugin/styles.css">
+</head>
+<body>
+  <main class="even-codex-shell" id="even-codex-app">
+    <header class="even-codex-hero">
+      <p class="even-codex-kicker">Even Plugin</p>
+      <h1>Even Codex Bridge</h1>
+      <p class="even-codex-copy">This bundled plugin reads the live DD connector bootstrap and shows the currently paired Codex session.</p>
+    </header>
+    <section class="even-codex-grid">
+      <article class="even-codex-card">
+        <h2>Workspace</h2>
+        <p data-field="workspace-ref">Loading...</p>
+      </article>
+      <article class="even-codex-card">
+        <h2>Codex Session</h2>
+        <p data-field="codex-session-id">Loading...</p>
+      </article>
+      <article class="even-codex-card">
+        <h2>Connector</h2>
+        <p data-field="bind-host">Loading...</p>
+      </article>
+      <article class="even-codex-card">
+        <h2>Bootstrap</h2>
+        <p data-field="bootstrap-url">Loading...</p>
+      </article>
+    </section>
+    <p class="even-codex-note" id="even-codex-status">Waiting for connector bootstrap...</p>
+  </main>
+  <script src="/plugin/app.js"></script>
+</body>
+</html>
