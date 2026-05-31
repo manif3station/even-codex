@@ -9,8 +9,8 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 ## Verified Result
 
 - verified on 2026-05-31
-- all 17 test files passed
-- 347 assertions passed
+- all 18 test files passed
+- 376 assertions passed
 - selected module statement coverage reached `100.0`
 - selected module subroutine coverage reached `100.0`
 - selected module branch coverage reached `100.0`
@@ -24,6 +24,8 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 - `t/14-simulator-cli.t` proved the bash simulator controller start and stop lifecycle
 - `t/15-e2e-cli.t` proved the one-command desktop E2E launcher starts the bridge, app server, and simulator flow together
 - `t/16-even-hub-multisession.t` proved connector profile storage, per-connector session libraries, and glasses-side session switching guidance
+- `t/17-simulator-docker.t` proved the default simulator launcher writes a Docker env file, resolves the active pairing, and shells out to skill-local Docker Compose
+- a real smoke run built the simulator image, started the containerized desktop, returned `HTTP 200` from `http://127.0.0.1:15700/`, and then tore the stack down cleanly
 
 Coverage summary from the verified run:
 

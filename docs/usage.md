@@ -87,7 +87,7 @@ The workflow writes:
 
 ## Start Or Stop The Simulator
 
-Start the local simulator controller:
+Start the default Dockerized simulator desktop:
 
 ```bash
 dashboard even-codex.simulator start
@@ -99,7 +99,39 @@ Stop it:
 dashboard even-codex.simulator stop
 ```
 
-Useful override environment variables:
+The default start flow now:
+
+- uses `developer-dashboard:latest` as the base image
+- starts a noVNC desktop on `http://127.0.0.1:15700/vnc.html?autoconnect=1&resize=scale`
+- installs and runs `even-codex` inside the container
+- injects the active workspace pairing into the containerized bridge chain
+- starts the DD web server, local bridge, Hub app server, and Even simulator without extra host setup
+
+Useful override environment variables for Docker mode:
+
+- `EVEN_CODEX_SIMULATOR_NOVNC_PORT`
+- `EVEN_CODEX_SIMULATOR_VNC_PORT`
+- `EVEN_CODEX_SIMULATOR_DASHBOARD_PORT`
+- `EVEN_CODEX_SIMULATOR_BRIDGE_HOST_PORT`
+- `EVEN_CODEX_SIMULATOR_APP_HOST_PORT`
+- `EVEN_CODEX_SIMULATOR_AUTOMATION_HOST_PORT`
+- `EVEN_CODEX_DOCKER_BIN`
+- `EVEN_CODEX_SIMULATOR_COMPOSE_FILE`
+- `EVEN_CODEX_SIMULATOR_ENV_FILE`
+
+Docker mode proven outputs:
+
+- `dashboard even-codex.simulator start` returns JSON with `mode`, `novnc_url`, `novnc_port`, `workspace_ref`, and `codex_session_id`
+- repeating `dashboard even-codex.simulator start` while the compose state exists returns `already-running`
+- `dashboard even-codex.simulator stop` tears the compose stack down and removes the generated env file
+
+If you want the older host-local process mode instead of Docker, force it explicitly:
+
+```bash
+EVEN_CODEX_SIMULATOR_MODE=local dashboard even-codex.simulator start
+```
+
+Local-mode override environment variables:
 
 - `EVEN_CODEX_SIMULATOR_BIN`
 - `EVEN_CODEX_SIMULATOR_URL`
@@ -113,7 +145,7 @@ Default runtime files:
 - pid file: `~/.developer-dashboard/state/even-codex/simulator/simulator.pid`
 - log file: `~/.developer-dashboard/state/even-codex/simulator/simulator.log`
 
-Proven control outputs:
+Local-mode proven outputs:
 
 - `dashboard even-codex.simulator start` returns JSON with `status`, `pid`, `pid_file`, `log_file`, `simulator_url`, and `automation_port`
 - repeating `dashboard even-codex.simulator start` while the pid is still alive returns `already-running`

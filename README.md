@@ -60,17 +60,25 @@ For phone-side Even use, point the phone app at a LAN-reachable host name or pri
 EVEN_CODEX_ADVERTISE_HOST=192.168.1.20 dashboard even-codex.start
 ```
 
-Start or stop the local Even Hub simulator:
+Start or stop the Dockerized Even Hub simulator desktop:
 
 ```bash
 dashboard even-codex.simulator start
 dashboard even-codex.simulator stop
 ```
 
-Override the target URL or automation port when needed:
+Open the running noVNC desktop at:
 
 ```bash
-EVEN_CODEX_SIMULATOR_URL=http://127.0.0.1:4173 EVEN_CODEX_SIMULATOR_PORT=9898 dashboard even-codex.simulator start
+http://127.0.0.1:15700/vnc.html?autoconnect=1&resize=scale
+```
+
+The default simulator command now builds a skill-local image from `developer-dashboard:latest`, injects the active workspace pairing, and starts the DD environment, Hub app, bridge, and Even simulator together.
+
+If you want the older host-local process mode instead of the Docker desktop:
+
+```bash
+EVEN_CODEX_SIMULATOR_MODE=local dashboard even-codex.simulator start
 ```
 
 Start or stop the full local desktop E2E chain:
@@ -147,7 +155,7 @@ The current submission bundle now also includes:
 - `tagline`, `description`, and `changelog` fields in `app.json`
 - greyscale icon and background assets under `even-hub/assets/`
 - a simulator-backed screenshot capture workflow for `glasses.png` and `webview.png`
-- a local bash simulator controller for starting and stopping `evenhub-simulator`
+- a Dockerized noVNC simulator controller for one-command viewing on port `15700`
 
 ## Examples
 

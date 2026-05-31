@@ -54,6 +54,7 @@ SH
     chmod 0755, $stub_bin or die "Unable to chmod stub simulator: $!";
 
     my %env = (
+        EVEN_CODEX_SIMULATOR_MODE    => 'local',
         EVEN_CODEX_SIMULATOR_BIN     => $stub_bin,
         EVEN_CODEX_SIMULATOR_URL     => 'http://127.0.0.1:4173',
         EVEN_CODEX_SIMULATOR_PORT    => 9898,

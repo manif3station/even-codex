@@ -1,5 +1,13 @@
 Revision history for even-codex
 
+0.09 2026-05-31
+    - make `dashboard even-codex.simulator start` launch a Dockerized noVNC
+      desktop based on `developer-dashboard:latest`
+    - add skill-local Docker Compose and simulator image assets that start
+      the DD environment, bridge chain, and Even simulator together
+    - inject the active workspace pairing into the containerized simulator
+      flow so port `15700` is enough to view and test `D2-Codex`
+
 0.08 2026-05-31
     - add multi-connector profile storage to the `D2-Codex` Even plugin so
       the phone app can save and switch between different local DD connectors

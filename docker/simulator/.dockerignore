@@ -1,0 +1,5 @@
+.git
+.even-hub-build
+cover_db
+dist
+node_modules

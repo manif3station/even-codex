@@ -3,21 +3,41 @@ set -euo pipefail
 
 action="${1:-}"
 
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "${script_dir}/.." && pwd)"
+mode="${EVEN_CODEX_SIMULATOR_MODE:-docker}"
 runtime_root="${EVEN_CODEX_RUNTIME_ROOT:-${HOME}/.developer-dashboard/state/even-codex}"
-simulator_root="${runtime_root}/simulator"
-pid_file="${EVEN_CODEX_SIMULATOR_PID_FILE:-${simulator_root}/simulator.pid}"
-log_file="${EVEN_CODEX_SIMULATOR_LOG_FILE:-${simulator_root}/simulator.log}"
+docker_root="${runtime_root}/simulator-docker"
+local_root="${runtime_root}/simulator"
+
+docker_bin="${EVEN_CODEX_DOCKER_BIN:-docker}"
+docker_compose_file="${EVEN_CODEX_SIMULATOR_COMPOSE_FILE:-${repo_root}/docker-compose.simulator.yml}"
+docker_project="${EVEN_CODEX_SIMULATOR_PROJECT:-even-codex-simulator}"
+docker_env_file="${EVEN_CODEX_SIMULATOR_ENV_FILE:-${docker_root}/simulator.env}"
+docker_state_file="${EVEN_CODEX_SIMULATOR_STATE_FILE:-${docker_root}/state.json}"
+docker_dockerfile="${EVEN_CODEX_SIMULATOR_DOCKERFILE:-${repo_root}/docker/simulator/Dockerfile}"
+
 simulator_bin="${EVEN_CODEX_SIMULATOR_BIN:-evenhub-simulator}"
 simulator_url="${EVEN_CODEX_SIMULATOR_URL:-http://127.0.0.1:4173}"
 automation_port="${EVEN_CODEX_SIMULATOR_PORT:-9898}"
+pid_file="${EVEN_CODEX_SIMULATOR_PID_FILE:-${local_root}/simulator.pid}"
+log_file="${EVEN_CODEX_SIMULATOR_LOG_FILE:-${local_root}/simulator.log}"
 
-mkdir -p "${simulator_root}"
+novnc_port="${EVEN_CODEX_SIMULATOR_NOVNC_PORT:-15700}"
+vnc_port="${EVEN_CODEX_SIMULATOR_VNC_PORT:-15900}"
+dashboard_port="${EVEN_CODEX_SIMULATOR_DASHBOARD_PORT:-17890}"
+bridge_port="${EVEN_CODEX_SIMULATOR_BRIDGE_HOST_PORT:-16789}"
+app_port="${EVEN_CODEX_SIMULATOR_APP_HOST_PORT:-14173}"
+automation_host_port="${EVEN_CODEX_SIMULATOR_AUTOMATION_HOST_PORT:-19898}"
+novnc_url="http://127.0.0.1:${novnc_port}/vnc.html?autoconnect=1&resize=scale"
+
+mkdir -p "${local_root}" "${docker_root}"
 
 json_escape() {
   perl -MJSON::PP=encode_json -e 'local $/; print encode_json(scalar <STDIN>)'
 }
 
-print_json() {
+print_local_json() {
   local action_value="$1"
   local status_value="$2"
   local pid_value="$3"
@@ -30,6 +50,7 @@ print_json() {
   printf '{'
   printf '"action":"%s",' "${action_value}"
   printf '"status":"%s",' "${status_value}"
+  printf '"mode":"local",'
   printf '"pid":%s,' "${pid_value}"
   printf '"pid_file":%s,' "$(printf '%s' "${pid_path}" | json_escape)"
   printf '"log_file":%s,' "$(printf '%s' "${log_path}" | json_escape)"
@@ -39,17 +60,83 @@ print_json() {
   printf '}\n'
 }
 
+print_docker_json() {
+  local action_value="$1"
+  local status_value="$2"
+  local env_file_value="$3"
+  local compose_value="$4"
+  local dockerfile_value="$5"
+  local workspace_ref_value="$6"
+  local session_id_value="$7"
+
+  printf '{'
+  printf '"action":"%s",' "${action_value}"
+  printf '"status":"%s",' "${status_value}"
+  printf '"mode":"docker",'
+  printf '"compose_file":%s,' "$(printf '%s' "${compose_value}" | json_escape)"
+  printf '"dockerfile":%s,' "$(printf '%s' "${dockerfile_value}" | json_escape)"
+  printf '"env_file":%s,' "$(printf '%s' "${env_file_value}" | json_escape)"
+  printf '"project_name":%s,' "$(printf '%s' "${docker_project}" | json_escape)"
+  printf '"workspace_ref":%s,' "$(printf '%s' "${workspace_ref_value}" | json_escape)"
+  printf '"codex_session_id":%s,' "$(printf '%s' "${session_id_value}" | json_escape)"
+  printf '"novnc_port":%s,' "${novnc_port}"
+  printf '"vnc_port":%s,' "${vnc_port}"
+  printf '"dashboard_port":%s,' "${dashboard_port}"
+  printf '"bridge_port":%s,' "${bridge_port}"
+  printf '"app_port":%s,' "${app_port}"
+  printf '"automation_port":%s,' "${automation_host_port}"
+  printf '"novnc_url":%s' "$(printf '%s' "${novnc_url}" | json_escape)"
+  printf '}\n'
+}
+
 is_running() {
   local pid="$1"
   kill -0 "${pid}" 2>/dev/null
 }
 
-start_simulator() {
+resolve_workspace_ref() {
+  if [[ -n "${WORKSPACE_REF:-}" ]]; then
+    printf '%s' "${WORKSPACE_REF}"
+    return 0
+  fi
+  if [[ -n "${TICKET_REF:-}" ]]; then
+    printf '%s' "${TICKET_REF}"
+    return 0
+  fi
+  printf 'WORKSPACE_REF or TICKET_REF is required\n' >&2
+  return 2
+}
+
+resolve_paired_session() {
+  local workspace_ref="$1"
+  local result
+  result="$(
+    env EVEN_CODEX_CONFIG_ROOT="${EVEN_CODEX_CONFIG_ROOT:-}" HOME="${HOME}" perl -I"${repo_root}/lib" -MEven::Codex::State -e '
+      my $workspace_ref = shift @ARGV;
+      my $root = $ENV{EVEN_CODEX_CONFIG_ROOT};
+      my %args;
+      $args{workspace_ref} = $workspace_ref;
+      $args{env} = {
+        HOME => $ENV{HOME},
+        (defined($root) && $root ne q{} ? (EVEN_CODEX_CONFIG_ROOT => $root) : ()),
+      };
+      my $session = Even::Codex::State::load_pairing(%args);
+      print defined($session) ? $session : q{};
+    ' "${workspace_ref}"
+  )"
+  if [[ -z "${result}" ]]; then
+    printf 'No even-codex pairing exists for workspace %s. Run dashboard even-codex.start add <codex-session-id> first.\n' "${workspace_ref}" >&2
+    return 2
+  fi
+  printf '%s' "${result}"
+}
+
+start_local_simulator() {
   if [[ -f "${pid_file}" ]]; then
     local existing_pid
     existing_pid="$(cat "${pid_file}")"
     if [[ -n "${existing_pid}" ]] && is_running "${existing_pid}"; then
-      print_json "start" "already-running" "${existing_pid}" "${pid_file}" "${log_file}" "${simulator_url}" "${automation_port}" "${simulator_bin}"
+      print_local_json "start" "already-running" "${existing_pid}" "${pid_file}" "${log_file}" "${simulator_url}" "${automation_port}" "${simulator_bin}"
       return 0
     fi
     rm -f "${pid_file}"
@@ -59,12 +146,12 @@ start_simulator() {
   "${simulator_bin}" "${simulator_url}" --automation-port "${automation_port}" >>"${log_file}" 2>&1 &
   local pid="$!"
   printf '%s' "${pid}" > "${pid_file}"
-  print_json "start" "started" "${pid}" "${pid_file}" "${log_file}" "${simulator_url}" "${automation_port}" "${simulator_bin}"
+  print_local_json "start" "started" "${pid}" "${pid_file}" "${log_file}" "${simulator_url}" "${automation_port}" "${simulator_bin}"
 }
 
-stop_simulator() {
+stop_local_simulator() {
   if [[ ! -f "${pid_file}" ]]; then
-    print_json "stop" "not-running" 0 "${pid_file}" "${log_file}" "${simulator_url}" "${automation_port}" "${simulator_bin}"
+    print_local_json "stop" "not-running" 0 "${pid_file}" "${log_file}" "${simulator_url}" "${automation_port}" "${simulator_bin}"
     return 0
   fi
 
@@ -81,15 +168,78 @@ stop_simulator() {
   fi
 
   rm -f "${pid_file}"
-  print_json "stop" "stopped" "${pid:-0}" "${pid_file}" "${log_file}" "${simulator_url}" "${automation_port}" "${simulator_bin}"
+  print_local_json "stop" "stopped" "${pid:-0}" "${pid_file}" "${log_file}" "${simulator_url}" "${automation_port}" "${simulator_bin}"
+}
+
+write_docker_env_file() {
+  local workspace_ref="$1"
+  local session_id="$2"
+
+  cat > "${docker_env_file}" <<EOF
+EVEN_CODEX_WORKSPACE_REF=${workspace_ref}
+EVEN_CODEX_CODEX_SESSION_ID=${session_id}
+EVEN_CODEX_NOVNC_PORT=${novnc_port}
+EVEN_CODEX_VNC_PORT=${vnc_port}
+EVEN_CODEX_DASHBOARD_PORT=${dashboard_port}
+EVEN_CODEX_BRIDGE_HOST_PORT=${bridge_port}
+EVEN_CODEX_APP_HOST_PORT=${app_port}
+EVEN_CODEX_AUTOMATION_HOST_PORT=${automation_host_port}
+EOF
+}
+
+docker_compose() {
+  "${docker_bin}" compose -f "${docker_compose_file}" --env-file "${docker_env_file}" -p "${docker_project}" "$@"
+}
+
+start_docker_simulator() {
+  local workspace_ref session_id
+  workspace_ref="$(resolve_workspace_ref)"
+  session_id="$(resolve_paired_session "${workspace_ref}")"
+
+  if [[ -f "${docker_state_file}" ]]; then
+    print_docker_json "start" "already-running" "${docker_env_file}" "${docker_compose_file}" "${docker_dockerfile}" "${workspace_ref}" "${session_id}"
+    return 0
+  fi
+
+  write_docker_env_file "${workspace_ref}" "${session_id}"
+  docker_compose up -d --build >/dev/null
+
+  cat > "${docker_state_file}" <<EOF
+{"project_name":"${docker_project}","workspace_ref":"${workspace_ref}","codex_session_id":"${session_id}"}
+EOF
+
+  print_docker_json "start" "started" "${docker_env_file}" "${docker_compose_file}" "${docker_dockerfile}" "${workspace_ref}" "${session_id}"
+}
+
+stop_docker_simulator() {
+  local workspace_ref session_id
+  workspace_ref="${WORKSPACE_REF:-${TICKET_REF:-unknown}}"
+  session_id="unknown"
+
+  if [[ -f "${docker_env_file}" ]]; then
+    docker_compose down >/dev/null || true
+    rm -f "${docker_env_file}" "${docker_state_file}"
+    print_docker_json "stop" "stopped" "${docker_env_file}" "${docker_compose_file}" "${docker_dockerfile}" "${workspace_ref}" "${session_id}"
+    return 0
+  fi
+
+  print_docker_json "stop" "not-running" "${docker_env_file}" "${docker_compose_file}" "${docker_dockerfile}" "${workspace_ref}" "${session_id}"
 }
 
 case "${action}" in
   start)
-    start_simulator
+    if [[ "${mode}" == 'local' ]]; then
+      start_local_simulator
+    else
+      start_docker_simulator
+    fi
     ;;
   stop)
-    stop_simulator
+    if [[ "${mode}" == 'local' ]]; then
+      stop_local_simulator
+    else
+      stop_docker_simulator
+    fi
     ;;
   *)
     printf 'Usage: dashboard even-codex.simulator {start|stop}\n' >&2

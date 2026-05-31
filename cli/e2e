@@ -222,7 +222,7 @@ start_e2e() {
     local existing_bridge_pid existing_app_pid
     existing_bridge_pid="$(read_pid "${bridge_pid_file}")"
     existing_app_pid="$(read_pid "${app_pid_file}")"
-    EVEN_CODEX_SIMULATOR_URL="${simulator_url}" "${repo_root}/cli/simulator" start >/dev/null
+    EVEN_CODEX_SIMULATOR_MODE="${EVEN_CODEX_E2E_SIMULATOR_MODE:-local}" EVEN_CODEX_SIMULATOR_URL="${simulator_url}" "${repo_root}/cli/simulator" start >/dev/null
     print_json "start" "already-running" "${existing_bridge_pid}" "${existing_app_pid}" "${bridge_pid_file}" "${bridge_log_file}" "${app_pid_file}" "${app_log_file}" "${bridge_url}" "${bootstrap_url}" "${plugin_url}" "${app_url}" "${simulator_url}"
     return 0
   fi
@@ -232,7 +232,7 @@ start_e2e() {
   local bridge_pid app_pid
   bridge_pid="$(start_bridge)"
   app_pid="$(start_app_server)"
-  EVEN_CODEX_SIMULATOR_URL="${simulator_url}" "${repo_root}/cli/simulator" start >/dev/null
+  EVEN_CODEX_SIMULATOR_MODE="${EVEN_CODEX_E2E_SIMULATOR_MODE:-local}" EVEN_CODEX_SIMULATOR_URL="${simulator_url}" "${repo_root}/cli/simulator" start >/dev/null
   print_json "start" "started" "${bridge_pid}" "${app_pid}" "${bridge_pid_file}" "${bridge_log_file}" "${app_pid_file}" "${app_log_file}" "${bridge_url}" "${bootstrap_url}" "${plugin_url}" "${app_url}" "${simulator_url}"
 }
 
@@ -251,7 +251,7 @@ stop_e2e() {
   if stop_pid_file "${app_pid_file}"; then
     had_any=1
   fi
-  if EVEN_CODEX_SIMULATOR_URL="${simulator_url}" "${repo_root}/cli/simulator" stop >/dev/null; then
+  if EVEN_CODEX_SIMULATOR_MODE="${EVEN_CODEX_E2E_SIMULATOR_MODE:-local}" EVEN_CODEX_SIMULATOR_URL="${simulator_url}" "${repo_root}/cli/simulator" stop >/dev/null; then
     :
   fi
 
