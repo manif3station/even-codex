@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title">
+  <title>D2-Codex background</title>
+  <rect width="1600" height="900" fill="#f3f3f3"/>
+  <path d="M120 130h1360v1H120zm0 160h1360v1H120zm0 160h1360v1H120zm0 160h1360v1H120zm0 160h1360v1H120z" fill="#9f9f9f"/>
+  <rect x="160" y="180" width="1280" height="540" rx="52" fill="none" stroke="#111111" stroke-width="8"/>
+  <rect x="220" y="250" width="320" height="120" rx="20" fill="none" stroke="#444444" stroke-width="6"/>
+  <rect x="220" y="410" width="520" height="210" rx="20" fill="none" stroke="#444444" stroke-width="6"/>
+  <rect x="790" y="250" width="590" height="370" rx="20" fill="none" stroke="#444444" stroke-width="6"/>
+  <path d="M860 320h240v10H860zm0 58h440v10H860zm0 58h440v10H860zm0 58h300v10H860z" fill="#111111"/>
+  <path d="M290 300h180v12H290zm0 40h120v12H290zm0 170h360v12H290zm0 40h280v12H290z" fill="#111111"/>
+</svg>

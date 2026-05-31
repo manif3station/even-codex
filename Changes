@@ -1,5 +1,11 @@
 Revision history for even-codex
 
+0.05 2026-05-31
+    - add Even Hub listing metadata, greyscale icon and background assets,
+      and governed submission content for `D2-Codex`
+    - add a simulator-backed screenshot capture workflow for Hub submission
+    - prove the richer manifest fields still pack into a valid `.ehpk`
+
 0.04 2026-05-31
     - upgrade the `D2-Codex` Even Hub app from a packaging-valid starter into
       a user-friendly phone-side setup and status workflow

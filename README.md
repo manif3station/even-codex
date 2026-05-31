@@ -105,6 +105,13 @@ The current packaged UX now includes:
 - a glasses-side three-panel layout with readable status, detail cycling, and tap-to-refresh behavior
 - on-glasses prompts that make refresh, detail navigation, and exit behavior obvious
 
+The current submission bundle now also includes:
+
+- governed Even Hub listing metadata in `even-hub/listing.json`
+- `tagline`, `description`, and `changelog` fields in `app.json`
+- greyscale icon and background assets under `even-hub/assets/`
+- a simulator-backed screenshot capture workflow for `glasses.png` and `webview.png`
+
 ## Examples
 
 Normal-case example:
@@ -136,6 +143,7 @@ Use this when the phone-hosted Even app must connect to a different LAN host or 
 
 - [Specification](SPEC.md)
 - [Overview](docs/overview.md)
+- [Submission](docs/submission.md)
 - [Usage](docs/usage.md)
 
 ## License

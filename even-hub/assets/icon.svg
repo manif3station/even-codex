@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title>D2-Codex icon</title>
+  <rect x="48" y="88" width="416" height="336" rx="56" fill="#111111"/>
+  <rect x="88" y="132" width="336" height="248" rx="28" fill="#f2f2f2"/>
+  <path d="M160 192h72c58 0 104 38 104 96s-46 96-104 96h-72V192Zm64 52v88h8c31 0 52-17 52-44s-21-44-52-44h-8Z" fill="#111111"/>
+  <path d="M320 200h32v112h56v24h-88V200Z" fill="#111111"/>
+</svg>

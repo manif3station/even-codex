@@ -1,11 +1,12 @@
 {
   "name": "even-codex",
   "private": true,
-  "version": "0.4.0",
+  "version": "0.5.0",
   "type": "module",
   "scripts": {
     "build:hub": "node scripts/build-even-hub.mjs && vite build",
     "pack:hub": "npm run build:hub && npx evenhub pack .even-hub-build/app.json dist -o dist/d2-codex.ehpk",
+    "capture:hub-screens": "node scripts/capture-even-hub-screenshots.mjs",
     "dev:hub": "vite"
   },
   "dependencies": {

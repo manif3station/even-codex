@@ -72,6 +72,19 @@ The generated package manifest is also written to:
 
 That generated manifest mirrors the committed `app.json` schema but swaps the network whitelist to the requested `EVEN_CODEX_HUB_ORIGIN`.
 
+## Capture Hub Submission Screenshots
+
+After the app is built and the `evenhub-simulator` control plane is running on port `9898`, capture the current listing screenshots with:
+
+```bash
+npm run capture:hub-screens
+```
+
+The workflow writes:
+
+- `even-hub/assets/screenshots/glasses.png`
+- `even-hub/assets/screenshots/webview.png`
+
 ## Phone-Side Even Use
 
 The phone-hosted Even app must not use laptop-local `127.0.0.1` unless it is actually running on that same device. For real phone-to-laptop use, advertise a LAN-reachable host:

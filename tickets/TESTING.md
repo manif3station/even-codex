@@ -3,14 +3,14 @@
 ## Docker Verification
 
 ```bash
-docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-test bash -lc 'cd /workspace/skills/even-codex && rm -rf cover_db /workspace/skills/even-codex/cover_db .even-hub-build dist node_modules package-lock.json && npm install && HARNESS_PERL_SWITCHES=-MDevel::Cover prove -lr t && npm run build:hub && EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npm run pack:hub && cover -report text -select lib/Even/Codex/Spec.pm -select lib/Even/Codex/Protocol.pm -select lib/Even/Codex/State.pm -select lib/Even/Codex/Plugin.pm -select lib/Even/Codex/Server.pm -select lib/Even/Codex/Manager.pm'
+docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-test bash -lc 'cd /workspace/skills/even-codex && rm -rf cover_db /workspace/skills/even-codex/cover_db .even-hub-build dist node_modules package-lock.json && npm install && HARNESS_PERL_SWITCHES=-MDevel::Cover prove -lr t && npm run build:hub && EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npm run pack:hub && EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npx evenhub pack .even-hub-build/app.json dist -o dist/test-listing.ehpk && cover -report text -select lib/Even/Codex/Spec.pm -select lib/Even/Codex/Protocol.pm -select lib/Even/Codex/State.pm -select lib/Even/Codex/Plugin.pm -select lib/Even/Codex/Server.pm -select lib/Even/Codex/Manager.pm'
 ```
 
 ## Verified Result
 
 - verified on 2026-05-31
-- all 13 test files passed
-- 239 assertions passed
+- all 14 test files passed
+- 270 assertions passed
 - selected module statement coverage reached `100.0`
 - selected module subroutine coverage reached `100.0`
 - selected module branch coverage reached `100.0`
@@ -19,6 +19,8 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 - `npm run build:hub` produced `dist/index.html`
 - `EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npm run pack:hub` produced `dist/d2-codex.ehpk`
 - `t/12-even-hub-ux.t` proved the stronger phone-side controls and multi-container glasses UX wiring
+- `t/13-even-hub-listing.t` proved the listing metadata, greyscale assets, and screenshot workflow files
+- `EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npx evenhub pack .even-hub-build/app.json dist -o dist/test-listing.ehpk` proved the richer manifest fields still pack
 
 Coverage summary from the verified run:
 

@@ -17,6 +17,7 @@ like( $package, qr/\@evenrealities\/even_hub_sdk/, 'package.json includes the Ev
 like( $package, qr/\@evenrealities\/evenhub-cli/, 'package.json includes the Even Hub CLI dependency' );
 like( $package, qr/"build:hub"/, 'package.json exposes a build script for the Even Hub app' );
 like( $package, qr/"pack:hub"/, 'package.json exposes a packaging script for the Even Hub app' );
+like( $package, qr/"capture:hub-screens"/, 'package.json exposes a screenshot capture script for the Even Hub app' );
 
 my $source = slurp('even-hub/src/main.ts');
 like( $source, qr/waitForEvenAppBridge/, 'Even Hub source waits for the Even app bridge' );

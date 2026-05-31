@@ -33,4 +33,11 @@ The packaged Even Hub app:
 - handles root double-click exit with `bridge.shutDownPageContainer(1)`
 - packages through `evenhub pack` into `dist/d2-codex.ehpk`
 
+The submission layer now also ships with the repo:
+
+- Even Hub listing metadata in `even-hub/listing.json`
+- long-text Hub manifest fields in `app.json`
+- monochrome icon and background assets in `even-hub/assets/`
+- a simulator-driven screenshot capture script for Hub screenshots
+
 The full product specification still matters. The shipped runtime is only the first local bridge slice, and the broader relay-plus-plugin architecture is still described in `SPEC.md` for later tickets.
