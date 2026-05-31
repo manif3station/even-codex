@@ -62,7 +62,7 @@ JS
     is( $exit, 0, "Playwright verifies the Even plugin page\n$output" );
     require JSON::PP;
     my $payload = JSON::PP::decode_json($output);
-    is( $payload->{title}, 'Even Codex Bridge', 'Playwright sees the plugin page title' );
+    is( $payload->{title}, 'D2-Codex Bridge', 'Playwright sees the plugin page title' );
     is( $payload->{workspace}, 'foobar', 'Playwright sees the paired workspace ref' );
     is( $payload->{session}, 'codex-session-88', 'Playwright sees the paired Codex session id' );
     like( $payload->{endpoint}, qr{/bootstrap\z}, 'Playwright sees the bootstrap endpoint' );

@@ -1,6 +1,6 @@
 {
   "id": "even-codex-plugin",
-  "name": "Even Codex",
+  "name": "D2-Codex",
   "version": "0.02",
   "start_url": "/plugin/",
   "bootstrap_path": "/bootstrap"

@@ -1,0 +1,19 @@
+{
+  "name": "even-codex",
+  "private": true,
+  "version": "0.3.0",
+  "type": "module",
+  "scripts": {
+    "build:hub": "node scripts/build-even-hub.mjs && vite build",
+    "pack:hub": "npm run build:hub && npx evenhub pack .even-hub-build/app.json dist -o dist/d2-codex.ehpk",
+    "dev:hub": "vite"
+  },
+  "dependencies": {
+    "@evenrealities/even_hub_sdk": "0.0.10"
+  },
+  "devDependencies": {
+    "@evenrealities/evenhub-cli": "0.1.13",
+    "typescript": "^5.8.3",
+    "vite": "^7.1.7"
+  }
+}

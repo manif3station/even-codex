@@ -4,17 +4,18 @@
 
 It solves the gap between a phone-hosted Even plugin and a machine-hosted Codex TUI. The glasses can display and control short Codex interactions, but the Even SDK runs inside the Even mobile app WebView and cannot rely on a laptop-local `localhost` route. This skill defines the production bridge contract that will connect those systems cleanly.
 
-The repository now ships the first runnable LAN bridge slice in addition to the governed specification. It includes:
+The repository now ships the first runnable LAN bridge slice and a real Even Hub package layer in addition to the governed specification. It includes:
 
 - a DD-side connector that pairs a workspace ref to a Codex session id
 - a local HTTP bridge that listens on port `6789` by default
 - a bundled Even plugin web app served from that same bridge under `/plugin/`
+- a packaged Even Hub app for `D2-Codex` under `even-hub/`
 
 The skill will add:
 
 - a local `even-codex` DD bridge skill
 - a relay API and WebSocket contract for phone-to-machine connectivity
-- a production Even Hub plugin that streams Codex progress to the glasses and sends supported commands back into Codex
+- relay-backed Codex streaming and command execution beyond the current LAN bootstrap slice
 
 What it does right now:
 
@@ -73,6 +74,30 @@ The plugin reads `/bootstrap` and shows:
 - the paired Codex session id
 - the bridge host and port
 - the bootstrap endpoint
+
+## Even Hub Packaging
+
+Build the real Even Hub app:
+
+```bash
+cd ~/projects/skills/skills/even-codex
+npm install
+npm run build:hub
+```
+
+Package it for the bridge host you actually want to reach from the phone:
+
+```bash
+EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npm run pack:hub
+```
+
+That produces:
+
+```text
+dist/d2-codex.ehpk
+```
+
+The packaged app uses the Even Hub SDK, persists the chosen bridge origin through SDK local storage, creates the startup glasses page on launch, and maps root double-click to `bridge.shutDownPageContainer(1)`.
 
 ## Examples
 

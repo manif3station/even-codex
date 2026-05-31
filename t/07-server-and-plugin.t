@@ -44,7 +44,7 @@ eval {
 
     my $plugin = _http_get( $port, '/plugin/' );
     is( $plugin->{status}, 200, '/plugin/ returns HTTP 200' );
-    like( $plugin->{body}, qr/Even Codex Bridge/, '/plugin/ serves the plugin HTML shell' );
+    like( $plugin->{body}, qr/D2-Codex Bridge/, '/plugin/ serves the plugin HTML shell' );
     like( $plugin->{body}, qr/even-codex-app/, '/plugin/ includes the plugin root container' );
 
     my $manifest = _http_get( $port, '/plugin/manifest.json' );
@@ -61,7 +61,7 @@ eval {
     is( $stylesheet->{status}, 200, '/plugin/styles.css returns HTTP 200' );
     like( $stylesheet->{body}, qr/\.even-codex-shell/, '/plugin/styles.css serves the plugin stylesheet' );
 
-    is( Even::Codex::Plugin::manifest_hash()->{name}, 'Even Codex', 'plugin manifest helper returns the plugin name' );
+    is( Even::Codex::Plugin::manifest_hash()->{name}, 'D2-Codex', 'plugin manifest helper returns the plugin name' );
 };
 my $error = $@;
 

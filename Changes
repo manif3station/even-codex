@@ -1,5 +1,14 @@
 Revision history for even-codex
 
+0.03 2026-05-31
+    - add a real Even Hub `D2-Codex` package manifest with documented
+      edition, version floor, entrypoint, and network permission structure
+    - add a Vite and TypeScript based Even Hub SDK app that creates the
+      startup glasses page, persists the bridge origin, and handles root
+      double-click exit plus foreground lifecycle events
+    - add reproducible `build:hub` and `pack:hub` workflows so the skill can
+      build `dist/index.html` and package `dist/d2-codex.ehpk`
+
 0.02 2026-05-31
     - add a runnable LAN bridge slice with workspace-to-Codex pairing through
       `dashboard even-codex.start add <codex-session-id>`
