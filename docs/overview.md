@@ -44,6 +44,7 @@ The submission layer now also ships with the repo:
 - a Dockerized noVNC simulator control CLI for one-command start and stop lifecycle management
 - a simulator image that includes the Codex CLI and reuses host Codex auth through `~/.codex`
 - a simulator image that resumes the paired session in a visible xterm through the real bundled Codex CLI binary
+- a host-UID default runtime model for the simulator container so mounted Codex auth is not rewritten by `root`
 - a one-command desktop E2E CLI that launches the bridge, app server, and simulator together
 
 The full product specification still matters. The shipped runtime is only the first local bridge slice, and the broader relay-plus-plugin architecture is still described in `SPEC.md` for later tickets.

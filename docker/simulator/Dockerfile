@@ -1,9 +1,15 @@
 FROM developer-dashboard:latest
 
+ARG EVEN_CODEX_RUNTIME_USER=dashboard
+ARG EVEN_CODEX_HOST_UID=1000
+ARG EVEN_CODEX_HOST_GID=1000
+
 ENV DEBIAN_FRONTEND=noninteractive
 ENV DISPLAY=:1
 ENV VITE_EVEN_CODEX_DEFAULT_BRIDGE_ORIGIN=http://127.0.0.1:6789
 ENV EVEN_CODEX_REAL_CODEX_BIN=/opt/codex-cli/bin/codex
+ENV EVEN_CODEX_RUNTIME_USER=${EVEN_CODEX_RUNTIME_USER}
+ENV EVEN_CODEX_RUNTIME_HOME=/home/dashboard
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
@@ -46,8 +52,22 @@ RUN npm install \
  && npm run build:hub \
  && dashboard skills install /opt/even-codex
 
+RUN set -eux; \
+    if ! getent group "${EVEN_CODEX_HOST_GID}" >/dev/null; then \
+      groupadd --gid "${EVEN_CODEX_HOST_GID}" "${EVEN_CODEX_RUNTIME_USER}"; \
+    fi; \
+    if ! getent passwd "${EVEN_CODEX_HOST_UID}" >/dev/null; then \
+      useradd --uid "${EVEN_CODEX_HOST_UID}" --gid "${EVEN_CODEX_HOST_GID}" --create-home --shell /bin/bash "${EVEN_CODEX_RUNTIME_USER}"; \
+    fi; \
+    mkdir -p "${EVEN_CODEX_RUNTIME_HOME}"; \
+    chown -R "${EVEN_CODEX_HOST_UID}:${EVEN_CODEX_HOST_GID}" "${EVEN_CODEX_RUNTIME_HOME}" /opt/even-codex
+
 COPY docker/simulator/entrypoint.sh /usr/local/bin/even-codex-simulator-entrypoint
+COPY docker/simulator/runtime.sh /usr/local/bin/even-codex-simulator-runtime
 RUN chmod 0755 /usr/local/bin/even-codex-simulator-entrypoint
+RUN chmod 0755 /usr/local/bin/even-codex-simulator-runtime
+
+USER ${EVEN_CODEX_HOST_UID}:${EVEN_CODEX_HOST_GID}
 
 EXPOSE 6080 5900 7890 6789 4173 9898
 

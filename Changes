@@ -1,5 +1,12 @@
 Revision history for even-codex
 
+0.12 2026-05-31
+    - run the Dockerized simulator desktop as the caller's host uid and gid by
+      default so the mounted `~/.codex` tree is not rewritten by `root`
+    - keep the live visual acceptance gate outside the Perl `.t` suite and
+      prove the release through fresh screenshots of the Codex xterm, plugin,
+      and glasses transcript surfaces
+
 0.11 2026-05-31
     - route the latest paired Codex prompt and reply through `/session` and
       into both the bridge-served plugin and the packaged `D2-Codex` app

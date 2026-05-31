@@ -4,65 +4,21 @@ set -euo pipefail
 export DISPLAY=:1
 export WORKSPACE_REF="${EVEN_CODEX_WORKSPACE_REF:-simulator}"
 export EVEN_CODEX_WORKSPACE_PATH="${EVEN_CODEX_WORKSPACE_PATH:-/opt/even-codex}"
-export EVEN_CODEX_RUNTIME_ROOT="${EVEN_CODEX_RUNTIME_ROOT:-/root/.developer-dashboard/state/even-codex}"
-export EVEN_CODEX_HOST=0.0.0.0
-export EVEN_CODEX_ADVERTISE_HOST=127.0.0.1
-export EVEN_CODEX_PORT=6789
-export EVEN_CODEX_E2E_APP_HOST=0.0.0.0
-export EVEN_CODEX_E2E_APP_PORT=4173
-export EVEN_CODEX_E2E_BUILD_MODE=skip
-export EVEN_CODEX_E2E_SIMULATOR_MODE=local
-export EVEN_CODEX_SIMULATOR_BIN=evenhub-simulator
-export EVEN_CODEX_SIMULATOR_URL="http://127.0.0.1:4173"
-export EVEN_CODEX_SIMULATOR_PORT=9898
 export EVEN_CODEX_REAL_CODEX_BIN="${EVEN_CODEX_REAL_CODEX_BIN:-/opt/codex-cli/bin/codex}"
+export EVEN_CODEX_RUNTIME_USER="${EVEN_CODEX_RUNTIME_USER:-dashboard}"
+export EVEN_CODEX_RUNTIME_HOME="${EVEN_CODEX_RUNTIME_HOME:-/home/dashboard}"
+export EVEN_CODEX_RUNTIME_ROOT="${EVEN_CODEX_RUNTIME_ROOT:-${EVEN_CODEX_RUNTIME_HOME}/.developer-dashboard/state/even-codex}"
 
-mkdir -p "${EVEN_CODEX_RUNTIME_ROOT}" /tmp/even-codex-simulator
-if command -v codex >/tmp/even-codex-simulator/codex-wrapper-path.txt 2>/dev/null; then
-  :
-else
-  printf 'missing\n' >/tmp/even-codex-simulator/codex-wrapper-path.txt
-fi
-printf '%s\n' "${EVEN_CODEX_REAL_CODEX_BIN}" >/tmp/even-codex-simulator/codex-path.txt
-"${EVEN_CODEX_REAL_CODEX_BIN}" --version >/tmp/even-codex-simulator/codex-version.txt
+mkdir -p /tmp/even-codex-simulator "${EVEN_CODEX_RUNTIME_HOME}"
 
-cleanup() {
-  dashboard even-codex.e2e stop >/tmp/even-codex-simulator/e2e-stop.log 2>&1 || true
-  dashboard stop >/tmp/even-codex-simulator/dashboard-stop.log 2>&1 || true
-  kill "${codex_pid:-0}" "${dashboard_pid:-0}" "${novnc_pid:-0}" "${vnc_pid:-0}" "${openbox_pid:-0}" "${xvfb_pid:-0}" 2>/dev/null || true
-}
-
-trap cleanup EXIT TERM INT
-
-Xvfb :1 -screen 0 1440x900x24 >/tmp/even-codex-simulator/xvfb.log 2>&1 &
-xvfb_pid="$!"
-sleep 1
-
-openbox >/tmp/even-codex-simulator/openbox.log 2>&1 &
-openbox_pid="$!"
-
-x11vnc -display :1 -forever -shared -rfbport 5900 -nopw >/tmp/even-codex-simulator/x11vnc.log 2>&1 &
-vnc_pid="$!"
-
-websockify --web=/usr/share/novnc/ 6080 localhost:5900 >/tmp/even-codex-simulator/novnc.log 2>&1 &
-novnc_pid="$!"
-
-dashboard serve --host 0.0.0.0 --port 7890 --foreground >/tmp/even-codex-simulator/dashboard-serve.log 2>&1 &
-dashboard_pid="$!"
-
-dashboard even-codex.start add "${EVEN_CODEX_CODEX_SESSION_ID}"
-dashboard even-codex.e2e start >/tmp/even-codex-simulator/e2e-start.json
-
-workspace_dir="${EVEN_CODEX_WORKSPACE_PATH}"
-if [[ ! -d "${workspace_dir}" ]]; then
-  workspace_dir="/opt/even-codex"
-fi
-
-xterm -hold -geometry 160x48+24+24 -T "Codex ${EVEN_CODEX_CODEX_SESSION_ID}" \
-  -e bash -lc 'cd "$1" && "$2" resume "$0" --cd "$1" --no-alt-screen --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust; exec bash' \
-  "${EVEN_CODEX_CODEX_SESSION_ID}" "${workspace_dir}" "${EVEN_CODEX_REAL_CODEX_BIN}" >/tmp/even-codex-simulator/codex-xterm.log 2>&1 &
-codex_pid="$!"
-
-while :; do
-  sleep 3600
-done
+exec env \
+  HOME="${EVEN_CODEX_RUNTIME_HOME}" \
+  DISPLAY="${DISPLAY}" \
+  WORKSPACE_REF="${WORKSPACE_REF}" \
+  EVEN_CODEX_WORKSPACE_PATH="${EVEN_CODEX_WORKSPACE_PATH}" \
+  EVEN_CODEX_RUNTIME_ROOT="${EVEN_CODEX_RUNTIME_ROOT}" \
+  EVEN_CODEX_RUNTIME_HOME="${EVEN_CODEX_RUNTIME_HOME}" \
+  EVEN_CODEX_RUNTIME_USER="${EVEN_CODEX_RUNTIME_USER}" \
+  EVEN_CODEX_REAL_CODEX_BIN="${EVEN_CODEX_REAL_CODEX_BIN}" \
+  EVEN_CODEX_CODEX_SESSION_ID="${EVEN_CODEX_CODEX_SESSION_ID}" \
+  /usr/local/bin/even-codex-simulator-runtime

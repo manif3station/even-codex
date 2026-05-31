@@ -105,7 +105,7 @@ The default start flow now:
 - starts a noVNC desktop on `http://127.0.0.1:15700/vnc.html?autoconnect=1&resize=scale`
 - installs and runs `even-codex` inside the container
 - installs the `codex` CLI inside the container
-- mounts `~/.codex` into `/root/.codex` so existing Codex auth and config are reused
+- mounts `~/.codex` into `/home/dashboard/.codex` so existing Codex auth and config are reused without root-owned writes on the host
 - injects the active workspace pairing into the containerized bridge chain
 - starts the DD web server, local bridge, Hub app server, and Even simulator without extra host setup
 - opens the paired Codex session in a visible xterm window through the real bundled Codex CLI binary
@@ -128,6 +128,23 @@ Docker mode proven outputs:
 - repeating `dashboard even-codex.simulator start` while the compose state exists returns `already-running`
 - `dashboard even-codex.simulator stop` tears the compose stack down and removes the generated env file
 - the live noVNC desktop can show a real Codex turn in the xterm window and the same prompt or reply on the Even plugin and glasses surfaces
+
+## Live Visual Release Gate
+
+The screenshot acceptance gate stays outside the Perl `.t` suite.
+
+Use the running noVNC desktop to capture fresh release evidence:
+
+```bash
+docker exec even-codex-simulator-simulator-1 bash -lc 'DISPLAY=:1 scrot /tmp/even-codex-release-gate.png'
+docker cp even-codex-simulator-simulator-1:/tmp/even-codex-release-gate.png /tmp/even-codex-release-gate.png
+```
+
+Review the screenshot manually or with an LLM image check. The release gate is only satisfied when the image clearly shows:
+
+- the Codex xterm with `hi` and `Hi`
+- the phone-side Even plugin with `Latest Prompt hi` and `Latest Reply Hi`
+- the glasses view with `Prompt hi` and `Reply Hi`
 
 If you want the older host-local process mode instead of Docker, force it explicitly:
 

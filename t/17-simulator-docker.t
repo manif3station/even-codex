@@ -92,6 +92,8 @@ SH
     like( $env_file, qr/^EVEN_CODEX_CODEX_SESSION_ID=codex-session-444$/m, 'env file carries the session id' );
     like( $env_file, qr/^EVEN_CODEX_WORKSPACE_PATH=\/tmp\/foobar-workspace$/m, 'env file carries the active workspace path' );
     like( $env_file, qr/^EVEN_CODEX_NOVNC_PORT=15700$/m, 'env file carries the noVNC port' );
+    like( $env_file, qr/^EVEN_CODEX_HOST_UID=\d+$/m, 'env file carries the host uid for the runtime user mapping' );
+    like( $env_file, qr/^EVEN_CODEX_HOST_GID=\d+$/m, 'env file carries the host gid for the runtime user mapping' );
 
     my $docker_commands = slurp($docker_capture);
     like( $docker_commands, qr/compose .*docker-compose\.simulator\.yml .* up -d --build/, 'start shells out to docker compose up with build' );

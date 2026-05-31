@@ -10,7 +10,7 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 
 - verified on 2026-05-31
 - all 20 test files passed
-- 439 assertions passed
+- 455 assertions passed
 - selected module statement coverage reached `100.0`
 - selected module subroutine coverage reached `100.0`
 - selected module branch coverage reached `100.0`
@@ -25,9 +25,12 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 - `t/15-e2e-cli.t` proved the one-command desktop E2E launcher starts the bridge, app server, and simulator flow together
 - `t/16-even-hub-multisession.t` proved connector profile storage, per-connector session libraries, and glasses-side session switching guidance
 - `t/17-simulator-docker.t` proved the default simulator launcher writes a Docker env file, resolves the active pairing, and shells out to skill-local Docker Compose
-- `t/18-simulator-codex-container.t` proved the simulator image installs `codex`, mounts host `~/.codex`, and records Codex availability at startup
+- `t/18-simulator-codex-container.t` proved the simulator image installs `codex`, mounts host `~/.codex`, and defaults the desktop runtime to the caller uid and gid
 - `t/19-live-transcript.t` proved transcript parsing and the `/session` route
-- a real smoke run built the simulator image, started the containerized desktop, confirmed `/opt/codex-cli/bin/codex` with version `codex-cli 0.135.0`, confirmed `/root/.codex/auth.json` and `/root/.codex/config.toml` were present from the host mount, returned `HTTP 200` from `http://127.0.0.1:15700/`, and proved the noVNC desktop could show a real `hi -> Hi` turn in the Codex xterm while the Even phone-side plugin and glasses view auto-refreshed to `Latest Prompt hi`, `Latest Reply Hi`, `Prompt hi`, and `Reply Hi`
+- a real smoke run built the simulator image, started the containerized desktop, confirmed the runtime process was running as uid `1000`, confirmed `/home/dashboard/.codex` was present from the host mount, returned `HTTP 200` from `http://127.0.0.1:15700/`, and proved through fresh screenshot review outside the Perl suite that the noVNC desktop showed:
+  - the Codex xterm with `hi` and `Hi`
+  - the Even plugin with `Latest Prompt hi` and `Latest Reply Hi`
+  - the glasses view with `Prompt hi` and `Reply Hi`
 
 Coverage summary from the verified run:
 
