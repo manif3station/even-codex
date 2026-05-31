@@ -99,6 +99,12 @@ dist/d2-codex.ehpk
 
 The packaged app uses the Even Hub SDK, persists the chosen bridge origin through SDK local storage, creates the startup glasses page on launch, and maps root double-click to `bridge.shutDownPageContainer(1)`.
 
+The current packaged UX now includes:
+
+- a phone-side connection dashboard with setup checklist, endpoint summaries, and refresh or reset controls
+- a glasses-side three-panel layout with readable status, detail cycling, and tap-to-refresh behavior
+- on-glasses prompts that make refresh, detail navigation, and exit behavior obvious
+
 ## Examples
 
 Normal-case example:

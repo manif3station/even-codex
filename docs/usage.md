@@ -86,6 +86,19 @@ You can also change the port:
 EVEN_CODEX_PORT=6790 EVEN_CODEX_ADVERTISE_HOST=192.168.1.20 dashboard even-codex.start
 ```
 
+Inside `D2-Codex`, the phone-side plugin now gives the user:
+
+- a connection status summary
+- a setup checklist for the pairing workflow
+- refresh, reset, and glasses-detail-cycle controls
+- readable bridge endpoint summaries
+
+On the glasses page, the current controls are:
+
+- tap header to refresh the bridge data
+- tap detail to cycle between summary, network, and setup-step panes
+- double-click to exit through the Even confirmation flow
+
 ## Proven Outputs
 
 - `dashboard even-codex.start add <codex-session-id>` writes the current workspace pairing
@@ -93,3 +106,4 @@ EVEN_CODEX_PORT=6790 EVEN_CODEX_ADVERTISE_HOST=192.168.1.20 dashboard even-codex
 - `/plugin/` loads the bundled Even plugin page and renders the paired workspace and session metadata
 - `npm run build:hub` writes `dist/index.html` for Even Hub packaging
 - `EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npm run pack:hub` writes `dist/d2-codex.ehpk`
+- the packaged `D2-Codex` Hub app shows a guided phone-side setup dashboard and a multi-container glasses status layout

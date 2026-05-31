@@ -9,8 +9,8 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 ## Verified Result
 
 - verified on 2026-05-31
-- all 12 test files passed
-- 219 assertions passed
+- all 13 test files passed
+- 239 assertions passed
 - selected module statement coverage reached `100.0`
 - selected module subroutine coverage reached `100.0`
 - selected module branch coverage reached `100.0`
@@ -18,6 +18,7 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 - `t/08-plugin-playwright.t` passed and proved the bundled Even plugin page renders paired session data from `/bootstrap`
 - `npm run build:hub` produced `dist/index.html`
 - `EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npm run pack:hub` produced `dist/d2-codex.ehpk`
+- `t/12-even-hub-ux.t` proved the stronger phone-side controls and multi-container glasses UX wiring
 
 Coverage summary from the verified run:
 

@@ -28,11 +28,17 @@ my @paths = (
     'docs/overview.md',
     'docs/usage.md',
     'docs/changes/2026-05-31-initial-specification.md',
+    'docs/changes/2026-05-31-even-hub-package-alignment.md',
+    'docs/changes/2026-05-31-even-hub-ux-upgrade.md',
     'docs/changes/2026-05-31-runnable-lan-bridge-and-plugin.md',
     'tickets/SOW.md',
     'tickets/EPIC-315.md',
+    'tickets/EPIC-322.md',
     'tickets/DD-315.md',
+    'tickets/DD-322.md',
+    'tickets/DD-323.md',
     'tickets/TESTING.md',
+    't/12-even-hub-ux.t',
 );
 
 for my $path (@paths) {

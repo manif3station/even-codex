@@ -1,5 +1,13 @@
 Revision history for even-codex
 
+0.04 2026-05-31
+    - upgrade the `D2-Codex` Even Hub app from a packaging-valid starter into
+      a user-friendly phone-side setup and status workflow
+    - rebuild the glasses view into three readable containers with header
+      refresh, detail cycling, and clearer exit guidance
+    - document and verify the stronger Even plugin UX through governed Docker
+      tests and release records
+
 0.03 2026-05-31
     - add a real Even Hub `D2-Codex` package manifest with documented
       edition, version floor, entrypoint, and network permission structure
