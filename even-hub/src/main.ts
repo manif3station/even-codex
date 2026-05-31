@@ -3,13 +3,11 @@ import './style.css';
 import {
   CreateStartUpPageContainer,
   OsEventTypeList,
-  RebuildPageContainer,
+  TextContainerUpgrade,
   TextContainerProperty,
   waitForEvenAppBridge,
 } from '@evenrealities/even_hub_sdk';
 
-type DetailMode = 'summary' | 'network' | 'conversation' | 'input';
-type GlassesLayoutMode = 'split' | 'focus';
 type InputAction = 'send' | 'retry' | 'cancel';
 
 type SessionRecord = {
@@ -32,9 +30,18 @@ type ConnectorProfile = {
   healthUrl: string;
   bootstrapUrl: string;
   pluginUrl: string;
+  promptUrl: string;
   lastSeenAt: string;
   lastUserMessage: string;
+  lastAssistantProgressMessage: string;
   lastAssistantMessage: string;
+  recentTurns: ConversationTurn[];
+};
+
+type ConversationTurn = {
+  prompt: string;
+  progress: string;
+  reply: string;
 };
 
 type StoredConfig = {
@@ -46,8 +53,6 @@ type PluginState = {
   config: StoredConfig;
   lifecycle: string;
   bridgeStatus: 'connected' | 'offline';
-  detailMode: DetailMode;
-  glassesLayoutMode: GlassesLayoutMode;
   selectedInputAction: InputAction;
   lastMessage: string;
   lastCheckedAt: string;
@@ -65,6 +70,9 @@ type BootstrapPayload = {
   health_url: string;
   bootstrap_url: string;
   plugin_url: string;
+  prompt_url: string;
+  last_assistant_progress_message: string;
+  recent_turns: ConversationTurn[];
 };
 
 type HealthPayload = {
@@ -81,7 +89,9 @@ type SessionPayload = {
   session_file: string;
   title: string;
   last_user_message: string;
+  last_assistant_progress_message: string;
   last_assistant_message: string;
+  recent_turns: ConversationTurn[];
 };
 
 const CONFIG_STORAGE_KEY = 'd2_codex.config';
@@ -89,11 +99,8 @@ const LEGACY_ORIGIN_STORAGE_KEY = 'd2_codex.bridge_origin';
 const DEFAULT_BRIDGE_ORIGIN =
   import.meta.env.VITE_EVEN_CODEX_DEFAULT_BRIDGE_ORIGIN || 'http://192.168.1.20:6789';
 const AUTO_REFRESH_INTERVAL_MS = 3000;
-const GLASSES_CONTAINER = {
-  header: 1,
-  detail: 2,
-  footer: 3,
-} as const;
+const GLASSES_TRANSCRIPT_CONTAINER_ID = 1;
+const GLASSES_TRANSCRIPT_CONTAINER_NAME = 'd2-codex-transcript';
 const app = document.querySelector<HTMLDivElement>('#app');
 
 if (!app) {
@@ -117,60 +124,48 @@ async function boot() {
 
   bridge.onEvenHubEvent(async (event) => {
     const sysEventType = event.sysEvent?.eventType;
-    if (sysEventType === OsEventTypeList.DOUBLE_CLICK_EVENT && state.glassesLayoutMode === 'focus') {
-      state.glassesLayoutMode = 'split';
-      state.lastMessage = 'Glasses layout restored to the three-pane view.';
+    const isSimulatorBareClick = sysEventType === undefined && event.sysEvent?.eventSource === 1;
+    if (sysEventType === OsEventTypeList.DOUBLE_CLICK_EVENT) {
+      state.lastMessage = 'Double press received from glasses input.';
+      renderPhoneUi(state);
+      return;
+    }
+
+    if (isSimulatorBareClick || sysEventType === OsEventTypeList.CLICK_EVENT) {
+      await refreshBootstrap(bridge, state, {
+        successMessage: 'Glasses click refreshed the live transcript.',
+        failureMessage: 'Glasses click refresh failed.',
+        quiet: true,
+      });
+      state.lastMessage = 'Glasses click refreshed the live transcript.';
       renderPhoneUi(state);
       await syncGlassesPage(bridge, state);
       return;
     }
 
-    if (sysEventType === OsEventTypeList.DOUBLE_CLICK_EVENT) {
-      await bridge.shutDownPageContainer(1);
+    const textEvent = event.textEvent;
+    if (textEvent?.eventType === OsEventTypeList.CLICK_EVENT) {
+      await refreshBootstrap(bridge, state, {
+        successMessage: 'Glasses click refreshed the live transcript.',
+        failureMessage: 'Glasses click refresh failed.',
+        quiet: true,
+      });
+      state.lastMessage = 'Glasses click refreshed the live transcript.';
+      renderPhoneUi(state);
+      await syncGlassesPage(bridge, state);
       return;
     }
 
-    if (sysEventType === OsEventTypeList.CLICK_EVENT) {
-      if (handleDetailClick(state)) {
-        renderPhoneUi(state);
-        await syncGlassesPage(bridge, state);
-        return;
-      }
-    }
-
-    const textEvent = event.textEvent;
-    if (textEvent?.eventType === OsEventTypeList.CLICK_EVENT) {
-      if (textEvent.containerID === GLASSES_CONTAINER.detail && handleDetailClick(state)) {
-        renderPhoneUi(state);
-        await syncGlassesPage(bridge, state);
-        return;
-      }
-    }
-
-    if (textEvent?.containerID === GLASSES_CONTAINER.detail) {
+    if (textEvent?.containerID === GLASSES_TRANSCRIPT_CONTAINER_ID) {
       if (textEvent.eventType === OsEventTypeList.SCROLL_TOP_EVENT) {
-        if (state.detailMode === 'input') {
-          state.selectedInputAction = previousInputAction(state.selectedInputAction);
-          state.lastMessage = `Selected ${state.selectedInputAction} for the staged query.`;
-        } else {
-          state.detailMode = previousDetailMode(state.detailMode);
-          state.lastMessage = `Showing ${state.detailMode} view on glasses.`;
-        }
+        state.lastMessage = 'Glasses swipe up reached the transcript top.';
         renderPhoneUi(state);
-        await syncGlassesPage(bridge, state);
         return;
       }
 
       if (textEvent.eventType === OsEventTypeList.SCROLL_BOTTOM_EVENT) {
-        if (state.detailMode === 'input') {
-          state.selectedInputAction = nextInputAction(state.selectedInputAction);
-          state.lastMessage = `Selected ${state.selectedInputAction} for the staged query.`;
-        } else {
-          state.detailMode = nextDetailMode(state.detailMode);
-          state.lastMessage = `Showing ${state.detailMode} view on glasses.`;
-        }
+        state.lastMessage = 'Glasses swipe down reached the transcript bottom.';
         renderPhoneUi(state);
-        await syncGlassesPage(bridge, state);
         return;
       }
     }
@@ -238,7 +233,6 @@ async function boot() {
       const query = normalizeDraftQuery(String(formData.get('draftQuery') || ''));
       state.draftQuery = query;
       state.stagedQuery = query;
-      state.detailMode = 'input';
       state.selectedInputAction = 'send';
       state.lastMessage = query
         ? `Staged query ready. Use Send, Retry, or Cancel.`
@@ -282,8 +276,12 @@ async function boot() {
     }
 
     if (role === 'cycle-button') {
-      state.detailMode = nextDetailMode(state.detailMode);
-      state.lastMessage = `Phone-side detail view switched to ${state.detailMode}.`;
+      await refreshBootstrap(bridge, state, {
+        successMessage: 'Phone-side refresh pushed the latest transcript to glasses.',
+        failureMessage: 'Phone-side refresh failed.',
+        quiet: true,
+      });
+      state.lastMessage = 'Phone-side refresh pushed the latest transcript to glasses.';
       renderPhoneUi(state);
       await syncGlassesPage(bridge, state);
       return;
@@ -319,7 +317,7 @@ async function boot() {
       state.draftQuery = normalizeDraftQuery(input?.value || state.draftQuery);
       state.stagedQuery = state.draftQuery;
       state.selectedInputAction = 'send';
-      applyInputAction(state);
+      await applyInputAction(bridge, state);
       renderPhoneUi(state);
       await syncGlassesPage(bridge, state);
       return;
@@ -330,7 +328,7 @@ async function boot() {
       state.draftQuery = normalizeDraftQuery(input?.value || state.draftQuery || state.lastSubmittedQuery);
       state.stagedQuery = state.draftQuery;
       state.selectedInputAction = 'retry';
-      applyInputAction(state);
+      await applyInputAction(bridge, state);
       renderPhoneUi(state);
       await syncGlassesPage(bridge, state);
       return;
@@ -338,7 +336,7 @@ async function boot() {
 
     if (role === 'cancel-query-button') {
       state.selectedInputAction = 'cancel';
-      applyInputAction(state);
+      await applyInputAction(bridge, state);
       renderPhoneUi(state);
       await syncGlassesPage(bridge, state);
       return;
@@ -408,8 +406,6 @@ function createInitialState(config: StoredConfig): PluginState {
     config,
     lifecycle: 'ready',
     bridgeStatus: 'offline',
-    detailMode: 'summary',
-    glassesLayoutMode: 'split',
     selectedInputAction: 'send',
     lastMessage: 'Waiting for the D2-Codex bridge bootstrap.',
     lastCheckedAt: 'Not checked yet',
@@ -526,6 +522,10 @@ function renderPhoneUi(state: PluginState) {
             <p class="value">${escapeHtml(connector.lastAssistantMessage || 'No reply yet.')}</p>
           </article>
           <article class="panel">
+            <p class="label">Latest Progress</p>
+            <p class="value">${escapeHtml(connector.lastAssistantProgressMessage || 'No progress yet.')}</p>
+          </article>
+          <article class="panel">
             <p class="label">Staged Query</p>
             <p class="value">${stagedQuery}</p>
           </article>
@@ -537,7 +537,7 @@ function renderPhoneUi(state: PluginState) {
 
         <section class="action-row">
           <button class="button" type="button" data-role="refresh-button">Refresh Connection</button>
-          <button class="button" type="button" data-role="cycle-button">Cycle Glasses Detail</button>
+          <button class="button" type="button" data-role="cycle-button">Refresh Glasses Transcript</button>
           <button class="button" type="button" data-role="cycle-session-button">Next Glasses Session</button>
         </section>
 
@@ -619,9 +619,10 @@ function renderPhoneUi(state: PluginState) {
         <section class="panel stack">
           <h2 class="section-title">Glasses Controls</h2>
           <ul class="list">
-            <li>Up and Down cycle the focused detail pane, or change the selected input action while the input pane is open.</li>
-            <li>Click focuses the current detail pane, and clicking the input pane applies the selected action.</li>
-            <li>Double-click restores the split layout, or exits when already in split view.</li>
+            <li>Up and Down use the native Even transcript scroll path on the single glasses text window.</li>
+            <li>Click refreshes the transcript when the simulator reports a glasses press event.</li>
+            <li>Double-click stays reserved by the current Even SDK event model, so the plugin does not remap it to layout changes.</li>
+            <li>Hold-to-dictate is not documented by the current Even SDK, so query entry stays in the phone-side composer.</li>
           </ul>
           <p class="status">${escapeHtml(state.lastMessage)}</p>
         </section>
@@ -679,7 +680,7 @@ function renderSessions(state: PluginState) {
 
 function buildStartupPage(state: PluginState) {
   return new CreateStartUpPageContainer({
-    containerTotalNum: 3,
+    containerTotalNum: 1,
     textObject: buildTextObjects(state),
   });
 }
@@ -688,117 +689,67 @@ async function syncGlassesPage(
   bridge: Awaited<ReturnType<typeof waitForEvenAppBridge>>,
   state: PluginState,
 ) {
-  await bridge.rebuildPageContainer(
-    new RebuildPageContainer({
-      containerTotalNum: 3,
-      textObject: buildTextObjects(state),
+  await bridge.textContainerUpgrade(
+    new TextContainerUpgrade({
+      containerID: GLASSES_TRANSCRIPT_CONTAINER_ID,
+      containerName: GLASSES_TRANSCRIPT_CONTAINER_NAME,
+      content: buildTranscriptText(state),
     }),
   );
 }
 
 function buildTextObjects(state: PluginState) {
-  const detailHeight = state.glassesLayoutMode === 'focus' ? 210 : 136;
-  const footerY = state.glassesLayoutMode === 'focus' ? 0 : 220;
-  const footerHeight = state.glassesLayoutMode === 'focus' ? 0 : 68;
-
   return [
     new TextContainerProperty({
       xPosition: 0,
       yPosition: 0,
       width: 576,
-      height: 72,
-      borderWidth: 1,
-      borderColor: 5,
+      height: 288,
+      borderWidth: 0,
+      borderColor: 0,
       paddingLength: 8,
-      containerID: GLASSES_CONTAINER.header,
-      containerName: 'd2-codex-header',
-      content: buildHeaderText(state),
-      isEventCapture: 0,
-    }),
-    new TextContainerProperty({
-      xPosition: 0,
-      yPosition: 78,
-      width: 576,
-      height: detailHeight,
-      borderWidth: 1,
-      borderColor: 5,
-      paddingLength: 8,
-      containerID: GLASSES_CONTAINER.detail,
-      containerName: 'd2-codex-detail',
-      content: buildDetailText(state),
+      containerID: GLASSES_TRANSCRIPT_CONTAINER_ID,
+      containerName: GLASSES_TRANSCRIPT_CONTAINER_NAME,
+      content: buildTranscriptText(state),
       isEventCapture: 1,
-    }),
-    new TextContainerProperty({
-      xPosition: 0,
-      yPosition: footerY,
-      width: 576,
-      height: footerHeight,
-      borderWidth: 1,
-      borderColor: 5,
-      paddingLength: 8,
-      containerID: GLASSES_CONTAINER.footer,
-      containerName: 'd2-codex-footer',
-      content: state.glassesLayoutMode === 'focus' ? '' : buildFooterText(state),
-      isEventCapture: 0,
     }),
   ];
 }
 
-function buildHeaderText(state: PluginState) {
+function buildTranscriptText(state: PluginState) {
   const connector = getActiveConnector(state);
-  return [
-    'D2-Codex',
-    `${state.bridgeStatus.toUpperCase()}  ${truncate(connector.name, 20)}`,
-    truncate(`Layout ${state.glassesLayoutMode} · ${connector.workspaceRef}`, 28),
-  ].join('\n');
-}
+  const turns = connector.recentTurns.slice(-4);
+  const lines: string[] = [];
 
-function buildDetailText(state: PluginState) {
-  const connector = getActiveConnector(state);
-
-  if (state.detailMode === 'network') {
-    return [
-      'Network',
-      truncate(`Host ${connector.advertisedHost}:${connector.port}`, 34),
-      truncate(`Origin ${connector.origin}`, 34),
-      'Up/down changes pane · click focus',
-    ].join('\n');
+  if (!turns.length) {
+    if (connector.lastUserMessage) {
+      lines.push(`Prompt ${connector.lastUserMessage}`);
+    }
+    if (connector.lastAssistantProgressMessage) {
+      lines.push(`Progress ${connector.lastAssistantProgressMessage}`);
+    }
+    if (connector.lastAssistantMessage) {
+      lines.push(`Reply ${connector.lastAssistantMessage}`);
+    }
   }
 
-  if (state.detailMode === 'conversation') {
-    return [
-      'Conversation',
-      truncate(`Prompt ${connector.lastUserMessage || 'No prompt yet.'}`, 34),
-      truncate(`Reply ${connector.lastAssistantMessage || 'No reply yet.'}`, 34),
-      'Up/down changes pane · click focus',
-    ].join('\n');
+  for (const turn of turns) {
+    if (turn.prompt) {
+      lines.push(`Prompt ${turn.prompt}`);
+    }
+    if (turn.progress) {
+      lines.push(`Progress ${turn.progress}`);
+    }
+    if (turn.reply) {
+      lines.push(`Reply ${turn.reply}`);
+    }
   }
 
-  if (state.detailMode === 'input') {
-    return [
-      'Input',
-      truncate(`Draft ${state.stagedQuery || state.lastSubmittedQuery || 'No staged query.'}`, 34),
-      truncate(`Action ${state.selectedInputAction.toUpperCase()}`, 34),
-      'Up/down action · click apply',
-    ].join('\n');
+  if (!lines.length) {
+    lines.push('Waiting for the first Codex transcript.');
   }
 
-  return [
-    'Summary',
-    truncate(`Reply ${connector.lastAssistantMessage || 'No reply yet.'}`, 34),
-    truncate(`Workspace ${connector.workspaceRef}`, 34),
-    'Up/down changes pane · click focus',
-  ].join('\n');
-}
-
-function buildFooterText(state: PluginState) {
-  const connector = getActiveConnector(state);
-  return [
-    `Prompt ${truncate(connector.lastUserMessage || 'No prompt yet.', 25)}`,
-    `Checked ${state.lastCheckedAt}`,
-    `Staged ${truncate(state.stagedQuery || 'No staged query.', 22)}`,
-    'Double-click restore or exit',
-  ].join('\n');
+  return lines.join('\n');
 }
 
 async function fetchJson<T>(url: string) {
@@ -810,83 +761,15 @@ async function fetchJson<T>(url: string) {
   return (await response.json()) as T;
 }
 
-function nextDetailMode(current: DetailMode): DetailMode {
-  if (current === 'summary') {
-    return 'network';
-  }
-
-  if (current === 'network') {
-    return 'conversation';
-  }
-
-  if (current === 'conversation') {
-    return 'input';
-  }
-
-  return 'summary';
-}
-
-function previousDetailMode(current: DetailMode): DetailMode {
-  if (current === 'summary') {
-    return 'input';
-  }
-
-  if (current === 'network') {
-    return 'summary';
-  }
-
-  if (current === 'conversation') {
-    return 'network';
-  }
-
-  return 'conversation';
-}
-
-function nextInputAction(current: InputAction): InputAction {
-  if (current === 'send') {
-    return 'retry';
-  }
-
-  if (current === 'retry') {
-    return 'cancel';
-  }
-
-  return 'send';
-}
-
-function previousInputAction(current: InputAction): InputAction {
-  if (current === 'send') {
-    return 'cancel';
-  }
-
-  if (current === 'retry') {
-    return 'send';
-  }
-
-  return 'retry';
-}
-
-function handleDetailClick(state: PluginState) {
-  if (state.detailMode === 'input') {
-    applyInputAction(state);
-    return true;
-  }
-
-  state.glassesLayoutMode = state.glassesLayoutMode === 'split' ? 'focus' : 'split';
-  state.lastMessage = state.glassesLayoutMode === 'focus'
-    ? `Focused the ${state.detailMode} pane on glasses.`
-    : 'Glasses layout restored to the three-pane view.';
-  return true;
-}
-
-function applyInputAction(state: PluginState) {
+async function applyInputAction(
+  bridge: Awaited<ReturnType<typeof waitForEvenAppBridge>>,
+  state: PluginState,
+) {
   const normalized = normalizeDraftQuery(state.stagedQuery || state.draftQuery || state.lastSubmittedQuery);
 
   if (state.selectedInputAction === 'cancel') {
     state.draftQuery = '';
     state.stagedQuery = '';
-    state.detailMode = 'summary';
-    state.glassesLayoutMode = 'split';
     state.lastMessage = 'Cancelled the staged query.';
     return;
   }
@@ -894,8 +777,6 @@ function applyInputAction(state: PluginState) {
   if (state.selectedInputAction === 'retry') {
     state.draftQuery = normalized;
     state.stagedQuery = normalized;
-    state.detailMode = 'input';
-    state.glassesLayoutMode = 'split';
     state.lastMessage = 'Retry selected. Update the draft and stage it again.';
     return;
   }
@@ -908,9 +789,16 @@ function applyInputAction(state: PluginState) {
   state.lastSubmittedQuery = normalized;
   state.stagedQuery = normalized;
   state.draftQuery = normalized;
-  state.detailMode = 'conversation';
-  state.glassesLayoutMode = 'split';
-  state.lastMessage = `Queued query from the plugin: ${normalized}`;
+  state.lastMessage = `Submitting query to Codex: ${normalized}`;
+
+  const connector = getActiveConnector(state);
+  connector.lastUserMessage = normalized;
+  connector.lastAssistantProgressMessage = 'Waiting for Codex response...';
+  try {
+    await submitPrompt(bridge, state, normalized);
+  } catch (error) {
+    state.lastMessage = `Query submit failed: ${formatError(error)}`;
+  }
 }
 
 function cycleSession(state: PluginState) {
@@ -1004,7 +892,11 @@ function mergeBootstrapIntoConnector(connector: ConnectorProfile, bootstrap: Boo
   connector.healthUrl = `${connector.origin}/health`;
   connector.bootstrapUrl = bootstrap.bootstrap_url;
   connector.pluginUrl = bootstrap.plugin_url;
+  connector.promptUrl = bootstrap.prompt_url;
   connector.lastSeenAt = createTimestamp();
+  connector.lastAssistantProgressMessage =
+    bootstrap.last_assistant_progress_message || connector.lastAssistantProgressMessage;
+  connector.recentTurns = Array.isArray(bootstrap.recent_turns) ? bootstrap.recent_turns : connector.recentTurns;
 
   const existing = connector.sessions.find((session) => session.id === bootstrap.codex_session_id);
   if (existing) {
@@ -1025,7 +917,10 @@ function mergeBootstrapIntoConnector(connector: ConnectorProfile, bootstrap: Boo
 
 function mergeSessionIntoConnector(connector: ConnectorProfile, session: SessionPayload) {
   connector.lastUserMessage = session.last_user_message || connector.lastUserMessage;
+  connector.lastAssistantProgressMessage =
+    session.last_assistant_progress_message || connector.lastAssistantProgressMessage;
   connector.lastAssistantMessage = session.last_assistant_message || connector.lastAssistantMessage;
+  connector.recentTurns = Array.isArray(session.recent_turns) ? session.recent_turns : connector.recentTurns;
 }
 
 function createConnectorProfile(name: string, origin: string, index: number): ConnectorProfile {
@@ -1044,9 +939,12 @@ function createConnectorProfile(name: string, origin: string, index: number): Co
     healthUrl: `${normalizedOrigin}/health`,
     bootstrapUrl: `${normalizedOrigin}/bootstrap`,
     pluginUrl: `${normalizedOrigin}/plugin/`,
+    promptUrl: `${normalizedOrigin}/prompt`,
     lastSeenAt: 'Not checked yet',
     lastUserMessage: 'No prompt yet.',
+    lastAssistantProgressMessage: 'No progress yet.',
     lastAssistantMessage: 'No reply yet.',
+    recentTurns: [],
   };
 }
 
@@ -1138,6 +1036,42 @@ function normalizeOrigin(value: string) {
 function normalizeDraftQuery(value: string) {
   const trimmed = value.trim().replace(/\s+/g, ' ');
   return trimmed.replace(/^(slash)\s+/i, '/');
+}
+
+async function submitPrompt(
+  bridge: Awaited<ReturnType<typeof waitForEvenAppBridge>>,
+  state: PluginState,
+  query: string,
+) {
+  const connector = getActiveConnector(state);
+  const response = await fetch(connector.promptUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ query }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Prompt submit failed with ${response.status}`);
+  }
+
+  state.lastMessage = `Submitted query to Codex on ${connector.name}.`;
+  await refreshBootstrap(bridge, state, {
+    successMessage: 'Codex prompt submitted.',
+    failureMessage: 'Prompt submit refresh failed.',
+    quiet: true,
+  });
+
+  for (const delay of [900, 2200]) {
+    window.setTimeout(() => {
+      void refreshBootstrap(bridge, state, {
+        successMessage: '',
+        failureMessage: '',
+        quiet: true,
+      });
+    }, delay);
+  }
 }
 
 function formatError(error: unknown) {

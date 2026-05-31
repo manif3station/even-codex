@@ -22,6 +22,7 @@ like( $source, qr/Session Library/, 'phone UI exposes saved session management' 
 like( $source, qr/Port 6789/, 'phone UI explains the default bridge port' );
 like( $source, qr/Latest Prompt/, 'phone UI exposes the latest prompt transcript panel' );
 like( $source, qr/Latest Reply/, 'phone UI exposes the latest reply transcript panel' );
+like( $source, qr/Latest Progress/, 'phone UI exposes the latest assistant progress transcript panel' );
 like( $source, qr/Query Composer/, 'phone UI exposes a staged query composer section' );
 like( $source, qr/data-role="stage-query-button"/, 'phone UI exposes a stage query control' );
 like( $source, qr/data-role="send-query-button"/, 'phone UI exposes a send query control' );
@@ -31,15 +32,21 @@ like( $source, qr/data-role="load-slash-sample-button"/, 'phone UI exposes a sla
 like( $source, qr/data-role="load-latest-prompt-button"/, 'phone UI exposes a latest-prompt helper for staged input reuse' );
 like( $source, qr/starts with <code>Slash<\/code>|normalize/i, 'phone UI explains slash normalization for staged queries' );
 like( $source, qr/\/session/, 'source fetches the live transcript route' );
+like( $source, qr/\/prompt/, 'source submits staged prompts through the bridge prompt route' );
 like( $source, qr/refreshBootstrap/, 'source centralizes bridge refresh work' );
+like( $source, qr/buildTranscriptText/, 'source builds a single glasses transcript view' );
 like( $source, qr/quiet:\s*true/, 'source uses a quiet background refresh path for live transcript updates' );
-like( $source, qr/rebuildPageContainer/, 'source rebuilds the glasses page for richer UI updates' );
+like( $source, qr/textContainerUpgrade/, 'source updates the glasses transcript in place' );
 like( $source, qr/OsEventTypeList\.CLICK_EVENT/, 'source handles click events for glasses interaction' );
 like( $source, qr/sysEventType === OsEventTypeList\.CLICK_EVENT/, 'source accepts simulator click gestures that surface as system events' );
 like( $source, qr/textEvent\?->\{?containerID|\btextEvent\b/, 'source reacts to Even text events from glasses containers' );
-like( $source, qr/Up and Down cycle the focused detail pane/, 'phone UI explains up and down glasses navigation' );
-like( $source, qr/Click focuses the current detail pane/, 'phone UI explains click-to-focus behavior' );
-like( $source, qr/Double-click restores the split layout/, 'phone UI explains double-click restore behavior' );
+like( $source, qr/Up and Down use the native Even transcript scroll path/, 'phone UI explains native glasses transcript scrolling' );
+like( $source, qr/Click refreshes the transcript/, 'phone UI explains click-to-refresh behavior' );
+like( $source, qr/Double-click stays reserved by the current Even SDK event model/, 'phone UI explains that double-click is not remapped' );
+like( $source, qr/Hold-to-dictate is not documented by the current Even SDK/, 'phone UI explains the current hold limitation' );
+like( $source, qr/Prompt /, 'glasses transcript includes prompt lines' );
+like( $source, qr/Reply /, 'glasses transcript includes reply lines' );
+like( $source, qr/Progress /, 'glasses transcript includes progress lines' );
 
 my $style = slurp('even-hub/src/style.css');
 like( $style, qr/\.panel\b/, 'styles define richer panel sections' );

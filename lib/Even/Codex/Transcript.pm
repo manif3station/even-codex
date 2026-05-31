@@ -8,7 +8,7 @@ use File::Find qw(find);
 use File::Spec;
 use JSON::PP qw(decode_json);
 
-our $VERSION = '0.15';
+our $VERSION = '0.24';
 
 sub session_snapshot {
     my (%args) = @_;
@@ -25,7 +25,9 @@ sub session_snapshot {
         session_file           => q{},
         title                  => q{},
         last_user_message      => q{},
+        last_assistant_progress_message => q{},
         last_assistant_message => q{},
+        recent_turns           => [],
     } if !defined $session_file;
 
     open my $fh, '<', $session_file;
@@ -35,7 +37,11 @@ sub session_snapshot {
         session_file           => $session_file,
         title                  => q{},
         last_user_message      => q{},
+        last_assistant_progress_message => q{},
         last_assistant_message => q{},
+        pending_user_message   => q{},
+        pending_progress_message => q{},
+        recent_turns           => [],
     };
 
     while ( my $line = <$fh> ) {
@@ -47,6 +53,8 @@ sub session_snapshot {
     }
 
     close $fh;
+    delete $snapshot->{pending_user_message};
+    delete $snapshot->{pending_progress_message};
     return $snapshot;
 }
 
@@ -90,9 +98,21 @@ sub _merge_entry_into_snapshot {
     }
 
     if ( $entry->{type} && $entry->{type} eq 'event_msg' && ref $entry->{payload} eq 'HASH' ) {
-        return if !$entry->{payload}{type} || $entry->{payload}{type} ne 'user_message';
-        my $message = $entry->{payload}{message};
-        $snapshot->{last_user_message} = $message if defined $message && $message ne q{};
+        if ( $entry->{payload}{type} && $entry->{payload}{type} eq 'user_message' ) {
+            my $message = $entry->{payload}{message};
+            if ( defined $message && $message ne q{} ) {
+                $snapshot->{last_user_message} = $message;
+                $snapshot->{pending_user_message} = $message;
+                $snapshot->{pending_progress_message} = q{};
+            }
+        }
+        elsif ( $entry->{payload}{type} && $entry->{payload}{type} eq 'agent_message' ) {
+            my $message = $entry->{payload}{message};
+            if ( defined $message && $message ne q{} ) {
+                $snapshot->{last_assistant_progress_message} = $message;
+                $snapshot->{pending_progress_message} = $message;
+            }
+        }
         return;
     }
 
@@ -108,7 +128,38 @@ sub _merge_entry_into_snapshot {
         push @parts, $content->{text};
     }
 
-    $snapshot->{last_assistant_message} = join q{ }, @parts if @parts;
+    return if !@parts;
+
+    my $message = join q{ }, @parts;
+    if ( defined $entry->{payload}{phase} && $entry->{payload}{phase} eq 'commentary' ) {
+        $snapshot->{last_assistant_progress_message} = $message;
+        $snapshot->{pending_progress_message} = $message;
+        return;
+    }
+
+    $snapshot->{last_assistant_message} = $message;
+    _record_recent_turn(
+        $snapshot,
+        prompt   => $snapshot->{pending_user_message},
+        progress => $snapshot->{pending_progress_message},
+        reply    => $message,
+    );
+    $snapshot->{pending_progress_message} = q{};
+    return;
+}
+
+sub _record_recent_turn {
+    my ( $snapshot, %args ) = @_;
+    return if !defined $args{prompt} || $args{prompt} eq q{};
+    return if !defined $args{reply} || $args{reply} eq q{};
+
+    push @{ $snapshot->{recent_turns} }, {
+        prompt   => $args{prompt},
+        progress => $args{progress} || q{},
+        reply    => $args{reply},
+    };
+
+    shift @{ $snapshot->{recent_turns} } while @{ $snapshot->{recent_turns} } > 3;
     return;
 }
 

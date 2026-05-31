@@ -73,3 +73,5 @@ In a headless shell session, `evenhub-simulator` may still require an X display 
 - The screenshot workflow is simulator-backed because the current Even docs explicitly require screenshots that match real rendering.
 - The runtime plugin UX and the listing metadata are separate concerns; both now live in the repo and can be reviewed together.
 - The runtime plugin now keeps connector switching on the phone side while allowing session switching on glasses inside the active connector.
+- The current glasses runtime is intentionally a single scrolling transcript surface because the current Even input model is strongest when one text container owns capture and native scroll.
+- Release screenshots are allowed to be captured automatically, but the rendered-state interpretation must stay outside the Perl `.t` suite and be reviewed by a human or LLM before release.

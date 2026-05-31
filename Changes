@@ -1,5 +1,73 @@
 Revision history for even-codex
 
+0.24 2026-05-31
+    - replace the glasses-side multi-pane layout with a single full-screen
+      transcript container so native Even swipe scrolling no longer swaps the
+      display into a draft or action pane
+    - keep staged query controls on the phone side and record that the
+      current Even SDK docs do not document a native hold-to-dictate popup
+    - refresh the governed docs and tickets around the simplified glasses
+      interaction model
+
+0.22 2026-05-31
+    - treat simulator glasses events that only carry `eventSource: 1` as
+      click-compatible focus input so the noVNC click control remains usable
+      when the current Even simulator omits `eventType`
+    - harden the live simulator control path around the inconsistent click
+      payloads observed during screenshot-reviewed E2E checks
+
+0.21 2026-05-31
+    - treat simulator-delivered glasses `DOUBLE_CLICK_EVENT` as focus-or-
+      restore interaction instead of shutting the page down, because the
+      current Even simulator maps click input to event type `3`
+    - keep the glasses click flow usable in noVNC while preserving the recent
+      conversation focus and restore behavior
+    - update the governed release notes and proof workflow around the
+      simulator-specific event mapping
+
+0.20 2026-05-31
+    - keep the glasses page geometry stable during conversation focus mode so
+      simulator click and double-click controls no longer blank the display
+    - make focus mode swap the header and footer copy while preserving the
+      recent-turn conversation detail content
+    - re-prove the glasses focus and restore flow with fresh noVNC review
+
+0.19 2026-05-31
+    - turn a glasses click into a deterministic conversation zoom instead of a
+      generic pane toggle so the Even simulator shows the recent Codex turns
+      in a readable focus layout
+    - keep the focused glasses layout valid by retaining a footer area instead
+      of rebuilding the page with a zero-height container
+    - prove the fixed click and double-click simulator controls with fresh
+      screenshot review in the noVNC desktop
+
+0.18 2026-05-31
+    - route simulator-side prompt submission through a dedicated xterm
+      relauncher that resumes the paired Codex session with the new prompt,
+      avoiding the live post-turn composer submit failure
+    - keep the simulator desktop on the caller uid and replace the visible
+      Codex window deterministically for each staged query
+    - prove the fixed simulator bridge path with fresh noVNC screenshots and
+      update the governed release record
+
+0.17 2026-05-31
+    - drive the paired Codex xterm with `xdotool` before falling back to
+      direct tty writes so live simulator submissions land in the visible TUI
+      and complete the real end-to-end query loop
+    - prove the year and month glasses queries, glasses zoom controls, and
+      real plugin transcript updates through fresh noVNC screenshot review
+    - document the current Even SDK input limitation audit for voice entry and
+      keep the simulator screenshot review as a standing release gate
+
+0.16 2026-05-31
+    - add a real `/prompt` bridge route that writes staged Even-plugin queries
+      into the paired Codex TUI session
+    - surface assistant progress text and recent turn history so the glasses
+      focus view can show both recent queries and replies
+    - add a reusable local rule that keeps screenshot interpretation outside
+      the Perl `.t` suite and requires fresh human or LLM review for
+      simulator E2E acceptance
+
 0.15 2026-05-31
     - add a staged query composer with slash normalization so `Slash ...`
       becomes `/...` before the simulator flow stages the next Codex query

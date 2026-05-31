@@ -1,8 +1,8 @@
 {
   "developer_name": "Developer Dashboard",
   "category": "AI",
-  "short_description": "Bridge a paired Codex session onto Even glasses over your local network.",
-  "about": "D2-Codex pairs the active Developer Dashboard workspace with a Codex session and turns that pairing into a readable glasses companion. The phone-side plugin helps the user verify the bridge, while the glasses page keeps the paired workspace, session, and refresh flow visible.",
+  "short_description": "Use Developer Dashboard to bring a live Codex workspace onto Even glasses.",
+  "about": "D2-Codex pairs the active Developer Dashboard workspace with a Codex session and turns that pairing into a readable glasses companion. It also introduces the wider Developer Dashboard ecosystem for daily AI-assisted operations, skill management, and fast UI creation around local workflows. Install Developer Dashboard with curl https://raw.githubusercontent.com/manif3station/developer-dashboard/refs/heads/master/install.sh | sh and keep up with updates at https://michael.vu.",
   "contact_email": "manif3station@users.noreply.github.com",
   "support_url": "https://github.com/manif3station/even-codex/issues",
   "privacy_policy_url": "https://github.com/manif3station/even-codex/blob/master/docs/privacy.md",
@@ -12,6 +12,8 @@
   "information": {
     "primary_runtime": "LAN bridge on port 6789",
     "submission_mode": "Private build / sideload first",
-    "package_name": "com.ddskill.d2codex"
+    "package_name": "com.ddskill.d2codex",
+    "install": "curl https://raw.githubusercontent.com/manif3station/developer-dashboard/refs/heads/master/install.sh | sh",
+    "learn_more": "https://michael.vu"
   }
 }

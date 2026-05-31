@@ -64,8 +64,10 @@ RUN set -eux; \
 
 COPY docker/simulator/entrypoint.sh /usr/local/bin/even-codex-simulator-entrypoint
 COPY docker/simulator/runtime.sh /usr/local/bin/even-codex-simulator-runtime
+COPY docker/simulator/query-launcher.sh /usr/local/bin/even-codex-query-launcher
 RUN chmod 0755 /usr/local/bin/even-codex-simulator-entrypoint
 RUN chmod 0755 /usr/local/bin/even-codex-simulator-runtime
+RUN chmod 0755 /usr/local/bin/even-codex-query-launcher
 
 USER ${EVEN_CODEX_HOST_UID}:${EVEN_CODEX_HOST_GID}
 

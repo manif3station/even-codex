@@ -8,7 +8,7 @@ use File::Basename qw(dirname);
 use File::Spec;
 use JSON::PP qw(decode_json);
 
-our $VERSION = '0.15';
+our $VERSION = '0.24';
 
 sub plugin_root {
     return File::Spec->rel2abs(

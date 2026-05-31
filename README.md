@@ -24,7 +24,7 @@ What it does right now:
 - exposes the runtime protocol contract module for event types, command names, and deployment modes
 - stores workspace-to-Codex session pairings through `dashboard even-codex.start add <codex-session-id>`
 - starts a LAN bridge through `dashboard even-codex.start`
-- serves machine-readable `/health` and `/bootstrap` routes plus the bundled Even plugin web app under `/plugin/`
+- serves machine-readable `/health`, `/bootstrap`, `/session`, and `/prompt` routes plus the bundled Even plugin web app under `/plugin/`
 
 ## Installation
 
@@ -103,9 +103,10 @@ Inside the glasses view, the user can:
 
 - switch between saved sessions for the active connector
 - refresh the active connector
-- cycle detail panes
-- focus the active detail pane and restore the split layout with glasses clicks
-- stage a normalized query and cycle `Send`, `Retry`, or `Cancel` from the glasses input pane
+- scroll a single live transcript window with native Even swipe behavior
+- refresh the live transcript with a glasses click when the simulator reports a press
+- see live assistant progress text while Codex is still answering
+- read recent prompt, progress, and reply text without extra glasses-side panes
 
 The glasses view does not switch connectors. Connector changes stay in the phone plugin.
 
@@ -123,7 +124,8 @@ The plugin reads `/bootstrap` and shows:
 - the paired Codex session id
 - the bridge host and port
 - the bootstrap endpoint
-- the latest paired Codex prompt and reply from `/session`
+- the latest paired Codex prompt, progress, and reply from `/session`
+- a staged query path that submits back to the paired session through `/prompt`
 
 ## Even Hub Packaging
 
@@ -147,16 +149,17 @@ That produces:
 dist/d2-codex.ehpk
 ```
 
-The packaged app uses the Even Hub SDK, persists the chosen bridge origin through SDK local storage, creates the startup glasses page on launch, and maps root double-click to `bridge.shutDownPageContainer(1)`.
+The packaged app uses the Even Hub SDK, persists the chosen bridge origin through SDK local storage, and creates the startup glasses page as one transcript text container.
 
 The current packaged UX now includes:
 
 - a phone-side connection dashboard with setup checklist, connector profiles, session libraries, and refresh controls
-- a glasses-side three-panel layout with readable status, detail cycling, and session switching inside the active connector
+- a glasses-side single transcript window that streams recent prompt, progress, and reply text
 - automatic background transcript refresh so the phone-side plugin and glasses view catch up to live Codex turns without a manual reload
-- on-glasses prompts that make refresh, session switching, detail navigation, and exit behavior obvious
+- native glasses transcript scrolling without app-side pane swapping on swipe input
 - a phone-side staged query composer that normalizes leading `Slash` or `slash` into `/`
-- a glasses-side input pane that exposes `Send`, `Retry`, and `Cancel` action cycling
+- a live bridge submit path that writes staged queries into the paired Codex TUI session
+- a documented SDK limitation note that current Even docs do not describe a hold-to-dictate popup flow
 
 The current submission bundle now also includes:
 
@@ -186,7 +189,8 @@ dashboard even-codex.e2e start
 
 That brings up the Even bridge on port `6789`, serves the Hub app locally, and starts the Even simulator against that app by default. After that, the phone plugin can save more connector origins and more session ids without leaving the Even app.
 In the Dockerized noVNC desktop, the Codex xterm, the phone-side Even plugin, and the glasses view all reflect the paired session transcript. A live `hi -> Hi` smoke run has been proven end to end through fresh screenshot review of the running simulator desktop.
-The same simulator flow now also proves the staged query path: `slash ship status` is normalized to `/ship status`, shown in the phone plugin, and cycled through glasses-side input actions.
+The same simulator flow now also proves the staged query path: `slash ship status` is normalized to `/ship status` and shown in the phone plugin composer.
+The current release extends that to real submitted prompts: staged plugin input now lands in the paired Codex TUI, and the glasses transcript view shows the resulting prompt, progress, and reply text in one scrolling surface.
 
 Edge-case example:
 
@@ -200,6 +204,7 @@ Use this when the phone-hosted Even app must connect to a different LAN host or 
 
 - [Specification](SPEC.md)
 - [Overview](docs/overview.md)
+- [Release Rules](docs/release-rules.md)
 - [Submission](docs/submission.md)
 - [Usage](docs/usage.md)
 

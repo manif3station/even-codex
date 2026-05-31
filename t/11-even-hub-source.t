@@ -22,8 +22,8 @@ like( $package, qr/"capture:hub-screens"/, 'package.json exposes a screenshot ca
 my $source = slurp('even-hub/src/main.ts');
 like( $source, qr/waitForEvenAppBridge/, 'Even Hub source waits for the Even app bridge' );
 like( $source, qr/createStartUpPageContainer/, 'Even Hub source creates a startup page container' );
-like( $source, qr/shutDownPageContainer\(1\)/, 'Even Hub source uses the documented root exit confirmation flow' );
-like( $source, qr/OsEventTypeList\.DOUBLE_CLICK_EVENT/, 'Even Hub source handles root double-click exit' );
+like( $source, qr/OsEventTypeList\.DOUBLE_CLICK_EVENT/, 'Even Hub source handles glasses double-click events' );
+like( $source, qr/eventSource === 1/, 'Even Hub source treats bare simulator glasses-touch events as click-compatible input' );
 like( $source, qr/sysEventType === OsEventTypeList\.CLICK_EVENT/, 'Even Hub source handles simulator click gestures that arrive as system events' );
 like( $source, qr/OsEventTypeList\.FOREGROUND_ENTER_EVENT/, 'Even Hub source handles foreground enter' );
 like( $source, qr/OsEventTypeList\.FOREGROUND_EXIT_EVENT/, 'Even Hub source handles foreground exit' );
@@ -35,7 +35,8 @@ like( $source, qr/getLocalStorage/, 'Even Hub source remembers setup through SDK
 like( $source, qr/setLocalStorage/, 'Even Hub source persists setup through SDK local storage' );
 like( $source, qr/setInterval/, 'Even Hub source schedules background bridge refreshes' );
 like( $source, qr/normalizeDraftQuery/, 'Even Hub source normalizes staged query input' );
-like( $source, qr/handleDetailClick/, 'Even Hub source centralizes detail-pane click handling' );
+like( $source, qr/TextContainerUpgrade/, 'Even Hub source upgrades the glasses transcript container in place' );
+like( $source, qr/GLASSES_TRANSCRIPT_CONTAINER_NAME/, 'Even Hub source uses a dedicated single transcript container' );
 
 my $style = slurp('even-hub/src/style.css');
 unlike( $style, qr/background(?:-color)?\s*:/i, 'Even Hub source styles avoid background fill declarations' );

@@ -12,6 +12,7 @@ use Time::HiRes qw(sleep);
 use lib 'lib';
 use Even::Codex::Manager;
 use Even::Codex::Plugin;
+use Even::Codex::Sender;
 use Even::Codex::Server;
 use Even::Codex::State;
 
@@ -205,6 +206,10 @@ sub capture_run {
             port             => $port,
             workspace_ref    => 'foobar',
             codex_session_id => 'session-3',
+            sender           => Even::Codex::Sender->new(
+                ps_lines_provider => sub { return ["pts/3 /opt/codex-cli/bin/codex resume session-3\n"]; },
+                tty_writer        => sub { return 1; },
+            ),
         );
         $server->serve();
         exit 0;
@@ -213,13 +218,129 @@ sub capture_run {
     _wait_for_port($port);
     my $plugin = _http_get( $port, '/plugin' );
     is( $plugin->{status}, 200, 'server also serves the plugin HTML on /plugin without a trailing slash' );
+    my $malformed = _http_request( $port, 'BROKEN', '/plugin', undef, "Header-With-No-Value\r\n" );
+    is( $malformed->{status}, 404, 'server ignores malformed request headers and leaves unmatched methods as 404' );
+    my $garbled = _raw_http_request( $port, "GARBLED REQUEST\r\nContent-Length: nope\r\n\r\n" );
+    is( $garbled->{status}, 404, 'server keeps the default route when the request line is defined but does not match an HTTP method and path pair' );
     my $post = _http_request( $port, 'POST', '/health' );
     is( $post->{status}, 404, 'server treats non-GET requests as unmatched routes' );
+    my $bad_prompt = _http_request( $port, 'POST', '/prompt', '{}' );
+    is( $bad_prompt->{status}, 400, 'server rejects prompt submissions that omit the query' );
+    like( $bad_prompt->{body}, qr/Query is required/, 'server returns a useful prompt validation error' );
+    my $bad_json = _http_request( $port, 'POST', '/prompt', '{not-json}' );
+    is( $bad_json->{status}, 400, 'server rejects invalid JSON prompt submissions' );
     my $missing = _http_get( $port, '/missing' );
     is( $missing->{status}, 404, 'server returns 404 for unknown routes' );
 
     kill 'TERM', $pid;
     waitpid $pid, 0;
+}
+
+{
+    my $server = Even::Codex::Server->new(
+        host             => '127.0.0.1',
+        port             => 6789,
+        workspace_ref    => 'foobar',
+        codex_session_id => 'session-direct',
+        sender           => Even::Codex::Sender->new(
+            ps_lines_provider => sub { return ["pts/5 /opt/codex-cli/bin/codex resume session-direct\n"]; },
+            tty_writer        => sub { return 1; },
+        ),
+    );
+    is( $server->prompt_payload( query => 'direct prompt' )->{queued_query}, 'direct prompt', 'server prompt_payload exposes queued query data directly' );
+    my $empty_query = eval {
+        $server->prompt_payload( query => q{} );
+        1;
+    };
+    ok( !$empty_query, 'server prompt_payload rejects an empty query' );
+    like( $@, qr/Query is required/, 'server prompt_payload explains an empty query' );
+    is( Even::Codex::Server::_status_text(202), 'Accepted', 'server status helper labels HTTP 202' );
+    is( Even::Codex::Server::_status_text(400), 'Bad Request', 'server status helper labels HTTP 400' );
+    is( Even::Codex::Server::_status_text(404), 'Not Found', 'server status helper labels HTTP 404' );
+    my @session_route = $server->_response_for_request( 'GET', '/session', q{} );
+    my @plugin_route = $server->_response_for_request( 'GET', '/plugin/', q{} );
+    my @manifest_route = $server->_response_for_request( 'GET', '/plugin/manifest.json', q{} );
+    my @app_route = $server->_response_for_request( 'GET', '/plugin/app.js', q{} );
+    my @style_route = $server->_response_for_request( 'GET', '/plugin/styles.css', q{} );
+    is( scalar @session_route, 3, 'server direct session route returns a full response tuple' );
+    is( scalar @plugin_route, 3, 'server direct plugin-slash route returns a full response tuple' );
+    is( scalar @manifest_route, 3, 'server direct manifest route returns a full response tuple' );
+    is( scalar @app_route, 3, 'server direct JavaScript route returns a full response tuple' );
+    is( scalar @style_route, 3, 'server direct stylesheet route returns a full response tuple' );
+
+    my @empty_prompt_route;
+    my $empty_prompt_ok = eval {
+        @empty_prompt_route = $server->_response_for_request( 'POST', '/prompt', q{} );
+        1;
+    };
+    ok( !$empty_prompt_ok, 'server direct prompt route rejects an empty request body once prompt validation runs' );
+    like( $@, qr/Query is required/, 'server direct prompt route reports an empty-body query error' );
+
+    my $undef_prompt_ok = eval {
+        $server->_response_for_request( 'POST', '/prompt', undef );
+        1;
+    };
+    ok( !$undef_prompt_ok, 'server direct prompt route rejects an undefined request body once prompt validation runs' );
+    like( $@, qr/Query is required/, 'server direct prompt route reports an undefined-body query error' );
+
+    my $array_prompt_ok = eval {
+        $server->_response_for_request( 'POST', '/prompt', '[]' );
+        1;
+    };
+    ok( !$array_prompt_ok, 'server direct prompt route rejects non-hash JSON payloads' );
+    like( $@, qr/Query is required/, 'server direct prompt route reports non-hash JSON payloads clearly' );
+}
+
+{
+    my $server = Even::Codex::Server->new(
+        host             => '127.0.0.1',
+        port             => 6791,
+        workspace_ref    => 'defaults',
+        codex_session_id => 'defaults-session',
+    );
+    isa_ok( $server->{sender}, 'Even::Codex::Sender', 'server constructor creates a default sender when one is not supplied' );
+    ok( ref $server->{env} eq 'HASH', 'server constructor falls back to a default env hash when one is not supplied' );
+}
+
+{
+    my $custom_env = { HOME => '/tmp/even-codex-server-cover' };
+    my $server = Even::Codex::Server->new(
+        host             => '127.0.0.1',
+        port             => 6792,
+        advertised_host  => q{},
+        workspace_ref    => 'env-cover',
+        codex_session_id => 'env-session',
+        env              => $custom_env,
+    );
+    is( $server->{advertised_host}, '127.0.0.1', 'server constructor falls back when advertised_host is defined but empty' );
+    is( $server->{env}, $custom_env, 'server constructor keeps an explicit env hash when one is supplied' );
+}
+
+{
+    my $sender = Even::Codex::Sender->new(
+        ps_lines_provider => sub { return ["? xterm -e codex resume uncovered\n"]; },
+        tty_writer        => sub { return 1; },
+    );
+    my $missing_tty = eval {
+        $sender->find_session_tty( session_id => 'uncovered' );
+        1;
+    };
+    ok( !$missing_tty, 'sender fails when only non-interactive Codex lines are present' );
+    like( $@, qr/Unable to find an interactive Codex tty/, 'sender missing-tty error stays explicit' );
+
+    my $server = Even::Codex::Server->new(
+        host             => '127.0.0.1',
+        port             => 6793,
+        workspace_ref    => 'prompt-cover',
+        codex_session_id => 'prompt-session',
+        sender           => $sender,
+    );
+    my $missing_query = eval {
+        $server->prompt_payload();
+        1;
+    };
+    ok( !$missing_query, 'server prompt_payload rejects an undefined query' );
+    like( $@, qr/Query is required/, 'server prompt_payload explains an undefined query' );
 }
 
 {
@@ -523,20 +644,45 @@ sub _http_get {
 }
 
 sub _http_request {
-    my ( $port, $method, $path ) = @_;
+    my ( $port, $method, $path, $body, $raw_headers ) = @_;
     my $socket = IO::Socket::INET->new(
         PeerAddr => '127.0.0.1',
         PeerPort => $port,
         Proto    => 'tcp',
     ) or die "Unable to connect to test server: $!";
 
-    print {$socket} "$method $path HTTP/1.1\r\nHost: 127.0.0.1:$port\r\nConnection: close\r\n\r\n";
+    my $payload = defined $body ? $body : q{};
+    print {$socket} "$method $path HTTP/1.1\r\nHost: 127.0.0.1:$port\r\nConnection: close\r\n";
+    print {$socket} $raw_headers if defined $raw_headers;
+    if ( $method eq 'POST' ) {
+        print {$socket} "Content-Type: application/json\r\n";
+        print {$socket} "Content-Length: " . length($payload) . "\r\n";
+    }
+    print {$socket} "\r\n";
+    print {$socket} $payload if $method eq 'POST';
     my $raw = do { local $/; <$socket> };
     close $socket;
 
-    my ( $head, $body ) = split /\r?\n\r?\n/, $raw, 2;
+    my ( $head, $response_body ) = split /\r?\n\r?\n/, $raw, 2;
     my ($status) = $head =~ m{\AHTTP/1\.1\s+(\d+)};
-    return { status => 0 + $status, body => defined $body ? $body : q{} };
+    return { status => 0 + $status, body => defined $response_body ? $response_body : q{} };
+}
+
+sub _raw_http_request {
+    my ( $port, $raw_request ) = @_;
+    my $socket = IO::Socket::INET->new(
+        PeerAddr => '127.0.0.1',
+        PeerPort => $port,
+        Proto    => 'tcp',
+    ) or die "Unable to connect to test server: $!";
+
+    print {$socket} $raw_request;
+    my $raw = do { local $/; <$socket> };
+    close $socket;
+
+    my ( $head, $response_body ) = split /\r?\n\r?\n/, $raw, 2;
+    my ($status) = $head =~ m{\AHTTP/1\.1\s+(\d+)};
+    return { status => 0 + $status, body => defined $response_body ? $response_body : q{} };
 }
 
 sub _wait_for_port {

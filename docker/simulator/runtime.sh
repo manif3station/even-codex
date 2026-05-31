@@ -13,6 +13,7 @@ export EVEN_CODEX_SIMULATOR_BIN=evenhub-simulator
 export EVEN_CODEX_SIMULATOR_URL="http://127.0.0.1:4173"
 export EVEN_CODEX_SIMULATOR_PORT=9898
 export HOME="${EVEN_CODEX_RUNTIME_HOME:?}"
+export EVEN_CODEX_QUERY_LAUNCHER=/usr/local/bin/even-codex-query-launcher
 
 mkdir -p "${EVEN_CODEX_RUNTIME_ROOT}" /tmp/even-codex-simulator
 if command -v codex >/tmp/even-codex-simulator/codex-wrapper-path.txt 2>/dev/null; then
@@ -26,6 +27,10 @@ printf '%s\n' "${EVEN_CODEX_REAL_CODEX_BIN}" >/tmp/even-codex-simulator/codex-pa
 cleanup() {
   dashboard even-codex.e2e stop >/tmp/even-codex-simulator/e2e-stop.log 2>&1 || true
   dashboard stop >/tmp/even-codex-simulator/dashboard-stop.log 2>&1 || true
+  if [[ -f "${EVEN_CODEX_RUNTIME_ROOT}/codex-xterm.pid" ]]; then
+    codex_pid="$(cat "${EVEN_CODEX_RUNTIME_ROOT}/codex-xterm.pid" || true)"
+    kill "${codex_pid:-0}" 2>/dev/null || true
+  fi
   kill "${codex_pid:-0}" "${dashboard_pid:-0}" "${novnc_pid:-0}" "${vnc_pid:-0}" "${openbox_pid:-0}" "${xvfb_pid:-0}" 2>/dev/null || true
 }
 
@@ -57,10 +62,8 @@ if [[ ! -d "${workspace_dir}" ]]; then
   workspace_dir="/opt/even-codex"
 fi
 
-xterm -hold -geometry 160x48+24+24 -T "Codex ${EVEN_CODEX_CODEX_SESSION_ID}" \
-  -e bash -lc 'cd "$1" && "$2" resume "$0" --cd "$1" --no-alt-screen --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust; exec bash' \
-  "${EVEN_CODEX_CODEX_SESSION_ID}" "${workspace_dir}" "${EVEN_CODEX_REAL_CODEX_BIN}" >/tmp/even-codex-simulator/codex-xterm.log 2>&1 &
-codex_pid="$!"
+/usr/local/bin/even-codex-query-launcher "${EVEN_CODEX_CODEX_SESSION_ID}"
+codex_pid="$(cat "${EVEN_CODEX_RUNTIME_ROOT}/codex-xterm.pid")"
 
 while :; do
   sleep 3600

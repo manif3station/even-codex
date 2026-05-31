@@ -11,6 +11,7 @@ use Time::HiRes qw(sleep);
 
 use lib 'lib';
 use Even::Codex::Plugin;
+use Even::Codex::Sender;
 use Even::Codex::Server;
 
 my $tmp = tempdir( CLEANUP => 1 );
@@ -32,18 +33,27 @@ my $pid = fork();
 die "Unable to fork even-codex test server: $!" if !defined $pid;
 
 if ( $pid == 0 ) {
+    my @submitted;
     my $server = Even::Codex::Server->new(
         host             => '127.0.0.1',
         port             => $port,
         advertised_host  => '192.168.1.20',
         workspace_ref    => 'foobar',
         codex_session_id => $session_id,
+        sender           => Even::Codex::Sender->new(
+            ps_lines_provider => sub { return ["pts/9 /opt/codex-cli/bin/codex resume $session_id\n"]; },
+            tty_writer        => sub {
+                my ( $tty, $prompt ) = @_;
+                push @submitted, { tty => $tty, prompt => $prompt };
+                return 1;
+            },
+        ),
         env              => {
             HOME                   => $tmp,
             EVEN_CODEX_CODEX_HOME  => $codex_home,
         },
     );
-    $server->serve( max_requests => 10 );
+    $server->serve( max_requests => 11 );
     exit 0;
 }
 
@@ -63,8 +73,10 @@ eval {
     my $bootstrap_payload = decode_json( $bootstrap->{body} );
     is( $bootstrap_payload->{codex_session_id}, 'codex-session-77', '/bootstrap reports the paired Codex session id' );
     is( $bootstrap_payload->{last_user_message}, 'hi', '/bootstrap reports the latest user message' );
+    is( $bootstrap_payload->{last_assistant_progress_message}, q{}, '/bootstrap reports the latest progress message when none exists yet' );
     is( $bootstrap_payload->{last_assistant_message}, 'hello from codex', '/bootstrap reports the latest assistant message' );
     is( $bootstrap_payload->{plugin_url}, 'http://192.168.1.20:' . $port . '/plugin/', '/bootstrap reports the plugin URL' );
+    is( $bootstrap_payload->{prompt_url}, 'http://192.168.1.20:' . $port . '/prompt', '/bootstrap reports the prompt submit URL' );
 
     my $session = _http_get( $port, '/session' );
     is( $session->{status}, 200, '/session returns HTTP 200' );
@@ -72,6 +84,14 @@ eval {
     ok( $session_payload->{ok}, '/session reports ok' );
     is( $session_payload->{last_user_message}, 'hi', '/session reports the latest user message' );
     is( $session_payload->{last_assistant_message}, 'hello from codex', '/session reports the latest assistant message' );
+    is_deeply( $session_payload->{recent_turns}, [ { prompt => 'hi', progress => q{}, reply => 'hello from codex' } ], '/session returns the latest recent turn list' );
+
+    my $prompt = _http_request( $port, 'POST', '/prompt', '{"query":"what is the year today?"}' );
+    is( $prompt->{status}, 202, '/prompt accepts a prompt submission' );
+    my $prompt_payload = decode_json( $prompt->{body} );
+    ok( $prompt_payload->{ok}, '/prompt reports ok' );
+    is( $prompt_payload->{queued_query}, 'what is the year today?', '/prompt returns the queued query text' );
+    is( $prompt_payload->{tty}, 'pts/9', '/prompt returns the tty used for Codex prompt submission' );
 
     my $plugin = _http_get( $port, '/plugin/' );
     is( $plugin->{status}, 200, '/plugin/ returns HTTP 200' );
@@ -106,17 +126,29 @@ done_testing;
 
 sub _http_get {
     my ( $port, $path ) = @_;
+    return _http_request( $port, 'GET', $path );
+}
+
+sub _http_request {
+    my ( $port, $method, $path, $body ) = @_;
     my $socket = IO::Socket::INET->new(
         PeerAddr => '127.0.0.1',
         PeerPort => $port,
         Proto    => 'tcp',
     ) or die "Unable to connect to test server: $!";
 
-    print {$socket} "GET $path HTTP/1.1\r\nHost: 127.0.0.1:$port\r\nConnection: close\r\n\r\n";
+    my $payload = defined $body ? $body : q{};
+    print {$socket} "$method $path HTTP/1.1\r\nHost: 127.0.0.1:$port\r\nConnection: close\r\n";
+    if ( $method eq 'POST' ) {
+        print {$socket} "Content-Type: application/json\r\n";
+        print {$socket} "Content-Length: " . length($payload) . "\r\n";
+    }
+    print {$socket} "\r\n";
+    print {$socket} $payload if $method eq 'POST';
     my $raw = do { local $/; <$socket> };
     close $socket;
 
-    my ( $head, $body ) = split /\r?\n\r?\n/, $raw, 2;
+    my ( $head, $response_body ) = split /\r?\n\r?\n/, $raw, 2;
     my ($status) = $head =~ m{\AHTTP/1\.1\s+(\d+)};
     my ($content_type) = $head =~ /^Content-Type:\s*(.+)$/mi;
     my ($allow_origin) = $head =~ /^Access-Control-Allow-Origin:\s*(.+)$/mi;
@@ -126,7 +158,7 @@ sub _http_get {
         status                      => 0 + $status,
         content_type                => $content_type,
         access_control_allow_origin => $allow_origin,
-        body                        => defined $body ? $body : q{},
+        body                        => defined $response_body ? $response_body : q{},
     };
 }
 

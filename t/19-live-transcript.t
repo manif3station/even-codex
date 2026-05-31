@@ -24,6 +24,7 @@ open my $session_fh, '>', $session_path or die "Unable to open $session_path: $!
 print {$session_fh} <<'JSONL';
 {"timestamp":"2026-05-31T17:10:00.000Z","type":"session_meta","payload":{"id":"019e-live-transcript","cwd":"/tmp/foobar","title":"hi"}}
 {"timestamp":"2026-05-31T17:10:01.000Z","type":"event_msg","payload":{"type":"user_message","message":"hi"}}
+{"timestamp":"2026-05-31T17:10:01.500Z","type":"event_msg","payload":{"type":"agent_message","message":"Checking the current date"}}
 {"timestamp":"2026-05-31T17:10:02.000Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"hello from codex"}],"phase":"final_answer"}}
 JSONL
 close $session_fh or die "Unable to close $session_path: $!";
@@ -40,8 +41,10 @@ my $snapshot = Even::Codex::Transcript::session_snapshot(
 ok( $snapshot->{ok}, 'transcript snapshot reports ok for a present session' );
 is( $snapshot->{session_id}, $session_id, 'transcript snapshot reports the session id' );
 is( $snapshot->{last_user_message}, 'hi', 'transcript snapshot reads the latest user message' );
+is( $snapshot->{last_assistant_progress_message}, 'Checking the current date', 'transcript snapshot reads the latest assistant progress message' );
 is( $snapshot->{last_assistant_message}, 'hello from codex', 'transcript snapshot reads the latest assistant message' );
 is( $snapshot->{session_file}, $session_path, 'transcript snapshot reports the matching session file path' );
+is_deeply( $snapshot->{recent_turns}, [ { prompt => 'hi', progress => 'Checking the current date', reply => 'hello from codex' } ], 'transcript snapshot tracks recent turns with progress text' );
 
 my $port = _reserve_port();
 my $pid = fork();
@@ -66,7 +69,8 @@ eval {
     is( $session->{status}, 200, '/session returns HTTP 200 for a present transcript' );
     my $payload = decode_json( $session->{body} );
     is( $payload->{last_user_message}, 'hi', '/session returns the latest user message' );
-is( $payload->{last_assistant_message}, 'hello from codex', '/session returns the latest assistant message' );
+    is( $payload->{last_assistant_progress_message}, 'Checking the current date', '/session returns the latest assistant progress message' );
+    is( $payload->{last_assistant_message}, 'hello from codex', '/session returns the latest assistant message' );
 };
 my $error = $@;
 
@@ -108,6 +112,7 @@ print {$coverage_fh} "{\"type\":\"event_msg\",\"payload\":{\"type\":\"status\",\
 print {$coverage_fh} "{\"type\":\"event_msg\",\"payload\":{\"type\":\"user_message\"}}\n";
 print {$coverage_fh} "{\"type\":\"event_msg\",\"payload\":{\"type\":\"user_message\",\"message\":\"\"}}\n";
 print {$coverage_fh} "{\"type\":\"event_msg\",\"payload\":{\"type\":\"user_message\",\"message\":\"hi\"}}\n";
+print {$coverage_fh} "{\"type\":\"event_msg\",\"payload\":{\"type\":\"agent_message\",\"message\":\"working\"}}\n";
 print {$coverage_fh} "{\"type\":\"response_item\"}\n";
 print {$coverage_fh} "{\"type\":\"response_item\",\"payload\":[]}\n";
 print {$coverage_fh} "{\"type\":\"response_item\",\"payload\":{}}\n";
@@ -116,7 +121,11 @@ print {$coverage_fh} "{\"type\":\"response_item\",\"payload\":{\"type\":\"messag
 print {$coverage_fh} "{\"type\":\"response_item\",\"payload\":{\"type\":\"message\",\"role\":\"user\"}}\n";
 print {$coverage_fh} "{\"type\":\"response_item\",\"payload\":{\"type\":\"message\",\"role\":\"assistant\",\"content\":{}}}\n";
 print {$coverage_fh} "{\"type\":\"response_item\",\"payload\":{\"type\":\"message\",\"role\":\"assistant\",\"content\":[\"raw\",{}, {\"type\":\"output_text\"}]}}\n";
+print {$coverage_fh} "{\"type\":\"response_item\",\"payload\":{\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"thinking hard\"}],\"phase\":\"commentary\"}}\n";
 print {$coverage_fh} "{\"type\":\"response_item\",\"payload\":{\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"hello from codex\"}]}}\n";
+print {$coverage_fh} "{\"type\":\"event_msg\",\"payload\":{\"type\":\"user_message\",\"message\":\"what is the month of today?\"}}\n";
+print {$coverage_fh} "{\"type\":\"event_msg\",\"payload\":{\"type\":\"agent_message\",\"message\":\"Checking the current month\"}}\n";
+print {$coverage_fh} "{\"type\":\"response_item\",\"payload\":{\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"The month is May.\"}]}}\n";
 close $coverage_fh;
 
 my %coverage_env = (
@@ -130,9 +139,80 @@ my $coverage_snapshot = Even::Codex::Transcript::session_snapshot(
 );
 ok( $coverage_snapshot->{ok}, 'coverage transcript snapshot reports ok for a present session with mixed entries' );
 is( $coverage_snapshot->{title}, 'Coverage title', 'coverage transcript keeps the last non-empty session title' );
-is( $coverage_snapshot->{last_user_message}, 'hi', 'coverage transcript keeps the last non-empty user message' );
-is( $coverage_snapshot->{last_assistant_message}, 'hello from codex', 'coverage transcript keeps the last assistant text' );
+is( $coverage_snapshot->{last_user_message}, 'what is the month of today?', 'coverage transcript keeps the last non-empty user message' );
+is( $coverage_snapshot->{last_assistant_progress_message}, 'Checking the current month', 'coverage transcript keeps the latest assistant progress text' );
+is( $coverage_snapshot->{last_user_message}, 'what is the month of today?', 'coverage transcript keeps the latest user message' );
+is( $coverage_snapshot->{last_assistant_message}, 'The month is May.', 'coverage transcript keeps the last assistant text' );
+is_deeply(
+    $coverage_snapshot->{recent_turns},
+    [
+        { prompt => 'hi', progress => 'thinking hard', reply => 'hello from codex' },
+        { prompt => 'what is the month of today?', progress => 'Checking the current month', reply => 'The month is May.' },
+    ],
+    'coverage transcript keeps the recent turn history for focused glasses rendering'
+);
+is( scalar @{ $coverage_snapshot->{recent_turns} }, 2, 'coverage transcript keeps all recent turns when the history is shorter than the cap' );
 is( dirname( $coverage_snapshot->{session_file} ), $coverage_session_dir, 'coverage transcript resolves the matching session file inside the sessions tree' );
+ok( !defined Even::Codex::Transcript::_session_file_for_id( File::Spec->catdir( $coverage_root, 'missing' ), 'missing-session' ), 'session-file lookup returns undef when the sessions root is absent' );
+
+{
+    my $snapshot = {
+        recent_turns                    => [],
+        pending_user_message            => q{},
+        pending_progress_message        => q{},
+        last_user_message               => q{},
+        last_assistant_progress_message => q{},
+        last_assistant_message          => q{},
+    };
+    Even::Codex::Transcript::_merge_entry_into_snapshot(
+        $snapshot,
+        {
+            type    => 'event_msg',
+            payload => {
+                type    => 'agent_message',
+                message => q{},
+            },
+        },
+    );
+    is( $snapshot->{last_assistant_progress_message}, q{}, 'blank agent progress messages do not update the snapshot' );
+    Even::Codex::Transcript::_merge_entry_into_snapshot(
+        $snapshot,
+        {
+            type    => 'event_msg',
+            payload => {
+                type => 'agent_message',
+            },
+        },
+    );
+    is( $snapshot->{last_assistant_progress_message}, q{}, 'missing agent progress messages do not update the snapshot' );
+}
+
+{
+    my $snapshot = {
+        recent_turns => [],
+    };
+    Even::Codex::Transcript::_record_recent_turn( $snapshot );
+    Even::Codex::Transcript::_record_recent_turn( $snapshot, prompt => q{}, reply => 'reply only' );
+    Even::Codex::Transcript::_record_recent_turn( $snapshot, prompt => undef, reply => 'reply only' );
+    Even::Codex::Transcript::_record_recent_turn( $snapshot, prompt => 'prompt only', reply => q{} );
+    Even::Codex::Transcript::_record_recent_turn( $snapshot, prompt => 'prompt only' );
+    is_deeply( $snapshot->{recent_turns}, [], 'recent-turn helper ignores incomplete prompt or reply records' );
+
+    Even::Codex::Transcript::_record_recent_turn( $snapshot, prompt => 'q1', progress => 'p1', reply => 'a1' );
+    Even::Codex::Transcript::_record_recent_turn( $snapshot, prompt => 'q2', progress => 'p2', reply => 'a2' );
+    Even::Codex::Transcript::_record_recent_turn( $snapshot, prompt => 'q3', progress => 'p3', reply => 'a3' );
+    Even::Codex::Transcript::_record_recent_turn( $snapshot, prompt => 'q4', progress => 'p4', reply => 'a4' );
+    Even::Codex::Transcript::_record_recent_turn( $snapshot, prompt => 'q5', reply => 'a5' );
+    is_deeply(
+        $snapshot->{recent_turns},
+        [
+            { prompt => 'q3', progress => 'p3', reply => 'a3' },
+            { prompt => 'q4', progress => 'p4', reply => 'a4' },
+            { prompt => 'q5', progress => q{}, reply => 'a5' },
+        ],
+        'recent-turn helper caps the history at the newest three turns'
+    );
+}
 
 my $missing_snapshot = Even::Codex::Transcript::session_snapshot(
     env        => \%coverage_env,
