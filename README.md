@@ -60,6 +60,19 @@ For phone-side Even use, point the phone app at a LAN-reachable host name or pri
 EVEN_CODEX_ADVERTISE_HOST=192.168.1.20 dashboard even-codex.start
 ```
 
+Start or stop the local Even Hub simulator:
+
+```bash
+dashboard even-codex.simulator start
+dashboard even-codex.simulator stop
+```
+
+Override the target URL or automation port when needed:
+
+```bash
+EVEN_CODEX_SIMULATOR_URL=http://127.0.0.1:4173 EVEN_CODEX_SIMULATOR_PORT=9898 dashboard even-codex.simulator start
+```
+
 ## Browser Usage
 
 The bundled Even plugin web app is served by the same bridge:
@@ -111,6 +124,7 @@ The current submission bundle now also includes:
 - `tagline`, `description`, and `changelog` fields in `app.json`
 - greyscale icon and background assets under `even-hub/assets/`
 - a simulator-backed screenshot capture workflow for `glasses.png` and `webview.png`
+- a local bash simulator controller for starting and stopping `evenhub-simulator`
 
 ## Examples
 

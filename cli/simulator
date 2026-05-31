@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+action="${1:-}"
+
+runtime_root="${EVEN_CODEX_RUNTIME_ROOT:-${HOME}/.developer-dashboard/state/even-codex}"
+simulator_root="${runtime_root}/simulator"
+pid_file="${EVEN_CODEX_SIMULATOR_PID_FILE:-${simulator_root}/simulator.pid}"
+log_file="${EVEN_CODEX_SIMULATOR_LOG_FILE:-${simulator_root}/simulator.log}"
+simulator_bin="${EVEN_CODEX_SIMULATOR_BIN:-evenhub-simulator}"
+simulator_url="${EVEN_CODEX_SIMULATOR_URL:-http://127.0.0.1:4173}"
+automation_port="${EVEN_CODEX_SIMULATOR_PORT:-9898}"
+
+mkdir -p "${simulator_root}"
+
+json_escape() {
+  perl -MJSON::PP=encode_json -e 'local $/; print encode_json(scalar <STDIN>)'
+}
+
+print_json() {
+  local action_value="$1"
+  local status_value="$2"
+  local pid_value="$3"
+  local pid_path="$4"
+  local log_path="$5"
+  local url_value="$6"
+  local port_value="$7"
+  local bin_value="$8"
+
+  printf '{'
+  printf '"action":"%s",' "${action_value}"
+  printf '"status":"%s",' "${status_value}"
+  printf '"pid":%s,' "${pid_value}"
+  printf '"pid_file":%s,' "$(printf '%s' "${pid_path}" | json_escape)"
+  printf '"log_file":%s,' "$(printf '%s' "${log_path}" | json_escape)"
+  printf '"simulator_url":%s,' "$(printf '%s' "${url_value}" | json_escape)"
+  printf '"automation_port":%s,' "${port_value}"
+  printf '"simulator_bin":%s' "$(printf '%s' "${bin_value}" | json_escape)"
+  printf '}\n'
+}
+
+is_running() {
+  local pid="$1"
+  kill -0 "${pid}" 2>/dev/null
+}
+
+start_simulator() {
+  if [[ -f "${pid_file}" ]]; then
+    local existing_pid
+    existing_pid="$(cat "${pid_file}")"
+    if [[ -n "${existing_pid}" ]] && is_running "${existing_pid}"; then
+      print_json "start" "already-running" "${existing_pid}" "${pid_file}" "${log_file}" "${simulator_url}" "${automation_port}" "${simulator_bin}"
+      return 0
+    fi
+    rm -f "${pid_file}"
+  fi
+
+  : > "${log_file}"
+  "${simulator_bin}" "${simulator_url}" --automation-port "${automation_port}" >>"${log_file}" 2>&1 &
+  local pid="$!"
+  printf '%s' "${pid}" > "${pid_file}"
+  print_json "start" "started" "${pid}" "${pid_file}" "${log_file}" "${simulator_url}" "${automation_port}" "${simulator_bin}"
+}
+
+stop_simulator() {
+  if [[ ! -f "${pid_file}" ]]; then
+    print_json "stop" "not-running" 0 "${pid_file}" "${log_file}" "${simulator_url}" "${automation_port}" "${simulator_bin}"
+    return 0
+  fi
+
+  local pid
+  pid="$(cat "${pid_file}")"
+  if [[ -n "${pid}" ]] && is_running "${pid}"; then
+    kill "${pid}" 2>/dev/null || true
+    for _ in $(seq 1 20); do
+      if ! is_running "${pid}"; then
+        break
+      fi
+      sleep 0.1
+    done
+  fi
+
+  rm -f "${pid_file}"
+  print_json "stop" "stopped" "${pid:-0}" "${pid_file}" "${log_file}" "${simulator_url}" "${automation_port}" "${simulator_bin}"
+}
+
+case "${action}" in
+  start)
+    start_simulator
+    ;;
+  stop)
+    stop_simulator
+    ;;
+  *)
+    printf 'Usage: dashboard even-codex.simulator {start|stop}\n' >&2
+    exit 2
+    ;;
+esac

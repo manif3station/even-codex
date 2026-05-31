@@ -38,6 +38,13 @@ Then point `evenhub-simulator` at the running app URL or other current target an
 evenhub-simulator http://127.0.0.1:4173 --automation-port 9898
 ```
 
+You can also manage that simulator through the shipped bash wrapper:
+
+```bash
+EVEN_CODEX_SIMULATOR_URL=http://127.0.0.1:4173 dashboard even-codex.simulator start
+dashboard even-codex.simulator stop
+```
+
 Capture the current screenshots:
 
 ```bash

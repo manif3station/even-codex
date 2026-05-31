@@ -9,8 +9,8 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 ## Verified Result
 
 - verified on 2026-05-31
-- all 14 test files passed
-- 270 assertions passed
+- all 15 test files passed
+- 294 assertions passed
 - selected module statement coverage reached `100.0`
 - selected module subroutine coverage reached `100.0`
 - selected module branch coverage reached `100.0`
@@ -21,6 +21,7 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 - `t/12-even-hub-ux.t` proved the stronger phone-side controls and multi-container glasses UX wiring
 - `t/13-even-hub-listing.t` proved the listing metadata, greyscale assets, and screenshot workflow files
 - `EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npx evenhub pack .even-hub-build/app.json dist -o dist/test-listing.ehpk` proved the richer manifest fields still pack
+- `t/14-simulator-cli.t` proved the bash simulator controller start and stop lifecycle
 
 Coverage summary from the verified run:
 

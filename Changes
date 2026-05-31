@@ -1,5 +1,12 @@
 Revision history for even-codex
 
+0.06 2026-05-31
+    - add `dashboard even-codex.simulator {start,stop}` as a bash CLI for
+      local Even Hub simulator process control
+    - record pid and log files under the skill runtime area and support env
+      overrides for simulator bin, app URL, automation port, and runtime paths
+    - document and verify the local simulator control workflow in Docker
+
 0.05 2026-05-31
     - add Even Hub listing metadata, greyscale icon and background assets,
       and governed submission content for `D2-Codex`

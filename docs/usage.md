@@ -85,6 +85,41 @@ The workflow writes:
 - `even-hub/assets/screenshots/glasses.png`
 - `even-hub/assets/screenshots/webview.png`
 
+## Start Or Stop The Simulator
+
+Start the local simulator controller:
+
+```bash
+dashboard even-codex.simulator start
+```
+
+Stop it:
+
+```bash
+dashboard even-codex.simulator stop
+```
+
+Useful override environment variables:
+
+- `EVEN_CODEX_SIMULATOR_BIN`
+- `EVEN_CODEX_SIMULATOR_URL`
+- `EVEN_CODEX_SIMULATOR_PORT`
+- `EVEN_CODEX_RUNTIME_ROOT`
+- `EVEN_CODEX_SIMULATOR_PID_FILE`
+- `EVEN_CODEX_SIMULATOR_LOG_FILE`
+
+Default runtime files:
+
+- pid file: `~/.developer-dashboard/state/even-codex/simulator/simulator.pid`
+- log file: `~/.developer-dashboard/state/even-codex/simulator/simulator.log`
+
+Proven control outputs:
+
+- `dashboard even-codex.simulator start` returns JSON with `status`, `pid`, `pid_file`, `log_file`, `simulator_url`, and `automation_port`
+- repeating `dashboard even-codex.simulator start` while the pid is still alive returns `already-running`
+- `dashboard even-codex.simulator stop` returns `stopped` and removes the pid file
+- repeating `dashboard even-codex.simulator stop` returns `not-running`
+
 ## Phone-Side Even Use
 
 The phone-hosted Even app must not use laptop-local `127.0.0.1` unless it is actually running on that same device. For real phone-to-laptop use, advertise a LAN-reachable host:
