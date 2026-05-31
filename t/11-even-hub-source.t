@@ -25,16 +25,21 @@ like( $source, qr/createStartUpPageContainer/, 'Even Hub source creates a startu
 like( $source, qr/OsEventTypeList\.DOUBLE_CLICK_EVENT/, 'Even Hub source handles glasses double-click events' );
 like( $source, qr/eventSource === 1/, 'Even Hub source treats bare simulator glasses-touch events as click-compatible input' );
 like( $source, qr/sysEventType === OsEventTypeList\.CLICK_EVENT/, 'Even Hub source handles simulator click gestures that arrive as system events' );
+like( $source, qr/isTextContainerClick/, 'Even Hub source recognizes text-container click gestures' );
+like( $source, qr/isTextContainerDoubleClick/, 'Even Hub source recognizes text-container double-click gestures' );
 like( $source, qr/OsEventTypeList\.FOREGROUND_ENTER_EVENT/, 'Even Hub source handles foreground enter' );
 like( $source, qr/OsEventTypeList\.FOREGROUND_EXIT_EVENT/, 'Even Hub source handles foreground exit' );
 like( $source, qr/OsEventTypeList\.ABNORMAL_EXIT_EVENT/, 'Even Hub source handles abnormal exit' );
 like( $source, qr/OsEventTypeList\.SYSTEM_EXIT_EVENT/, 'Even Hub source handles system exit' );
 like( $source, qr/OsEventTypeList\.SCROLL_TOP_EVENT/, 'Even Hub source handles upward glasses navigation events' );
 like( $source, qr/OsEventTypeList\.SCROLL_BOTTOM_EVENT/, 'Even Hub source handles downward glasses navigation events' );
+like( $source, qr/cycleInputAction/, 'Even Hub source cycles staged actions from glasses swipe input' );
+like( $source, qr/selectedInputAction = 'send'/, 'Even Hub source resets the glasses input view to Send by default' );
 like( $source, qr/getLocalStorage/, 'Even Hub source remembers setup through SDK local storage' );
 like( $source, qr/setLocalStorage/, 'Even Hub source persists setup through SDK local storage' );
 like( $source, qr/setInterval/, 'Even Hub source schedules background bridge refreshes' );
 like( $source, qr/normalizeDraftQuery/, 'Even Hub source normalizes staged query input' );
+like( $source, qr/buildInputText/, 'Even Hub source renders a dedicated glasses input view' );
 like( $source, qr/TextContainerUpgrade/, 'Even Hub source upgrades the glasses transcript container in place' );
 like( $source, qr/GLASSES_TRANSCRIPT_CONTAINER_NAME/, 'Even Hub source uses a dedicated single transcript container' );
 

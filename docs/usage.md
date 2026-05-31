@@ -153,7 +153,7 @@ For tickets that change the live query loop, extend the same review with:
 - a real query submitted from the plugin or glasses input flow
 - the same query visible in the Codex TUI
 - assistant progress text visible on the glasses while the answer is forming
-- the glasses view staying on one scrolling transcript surface instead of switching into a draft or action pane during swipe input
+- the glasses view showing transcript by default, the staged input view only after `click`, action changes after `up` or `down`, and transcript restore after `double_click`
 
 This interpretation rule is reusable and permanent for this skill. The image or
 framebuffer capture may be scripted, but the visual judgement must remain a
@@ -256,7 +256,9 @@ Inside `D2-Codex`, the phone-side plugin now gives the user:
 Inside the glasses view, the same build now gives the user:
 
 - one full-screen live transcript window
-- native Even swipe scrolling for that transcript window
+- a click-open staged query input view that defaults to `Send`
+- `up` and `down` action cycling only while that input view is open
+- a double-click path back to the transcript view
 - prompt, progress, and reply text in the same scrolling stream
 - click-triggered transcript refresh when the simulator reports a glasses press
 

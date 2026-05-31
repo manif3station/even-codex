@@ -8,9 +8,9 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 
 ## Verified Result
 
-- verified on 2026-05-31
+- verified on 2026-06-01
 - all 21 test files passed
-- 614 assertions passed
+- 625 assertions passed
 - selected module statement coverage reached `100.0`
 - selected module subroutine coverage reached `100.0`
 - selected module branch coverage reached `100.0`
@@ -18,7 +18,7 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 - `t/08-plugin-playwright.t` passed and proved the bundled Even plugin page renders paired session data from `/bootstrap`
 - `npm run build:hub` produced `dist/index.html`
 - `EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npm run pack:hub` produced `dist/d2-codex.ehpk`
-- `t/12-even-hub-ux.t` proved the stronger phone-side controls and single-transcript glasses UX wiring
+- `t/12-even-hub-ux.t` proved the stronger phone-side controls plus glasses `click -> input`, `down -> action cycle`, and `double-click -> transcript` wiring
 - `t/13-even-hub-listing.t` proved the listing metadata, greyscale assets, and screenshot workflow files
 - `EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npx evenhub pack .even-hub-build/app.json dist -o dist/test-listing.ehpk` proved the richer manifest fields still pack
 - `t/14-simulator-cli.t` proved the bash simulator controller start and stop lifecycle
@@ -32,7 +32,7 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
   - the Codex xterm with `hi` and `Hi`
   - the Even plugin with `Latest Prompt hi` and `Latest Reply Hi`
   - the glasses view staying on one transcript surface with `Prompt hi` and `Reply Hi`
-  - the same single transcript surface still visible after simulator `Up`, `Down`, `Click`, and `Double click` controls
+  - the updated glasses control flow with transcript by default, `Click` opening the staged input view with `Action SEND`, `Down` cycling the staged action to `Action RETRY`, and `Double click` restoring the transcript view
 
 Coverage summary from the verified run:
 

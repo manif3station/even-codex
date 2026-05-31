@@ -1,5 +1,14 @@
 Revision history for even-codex
 
+0.25 2026-06-01
+
+    - align the glasses input flow to the current Even simulator click model
+      so the transcript stays visible by default, click opens the staged query
+      input view, swipe cycles actions only inside that view, and double-click
+      returns to the transcript surface
+    - add governed ticket records and screenshot-reviewed simulator proof for
+      the click, swipe, and double-click reactions
+
 0.24 2026-05-31
     - replace the glasses-side multi-pane layout with a single full-screen
       transcript container so native Even swipe scrolling no longer swaps the

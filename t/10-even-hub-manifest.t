@@ -17,7 +17,7 @@ my $app = read_json_file('app.json');
 
 is( $app->{name}, 'D2-Codex', 'Even Hub app name matches the target plugin name' );
 is( $app->{edition}, '202601', 'Even Hub app edition matches the current documented edition' );
-is( $app->{version}, '0.24.0', 'Even Hub app version is semver' );
+is( $app->{version}, '0.25.0', 'Even Hub app version is semver' );
 is( $app->{min_app_version}, '2.0.0', 'Even Hub app declares a minimum app version' );
 is( $app->{min_sdk_version}, '0.0.10', 'Even Hub app declares the current SDK floor' );
 is( $app->{entrypoint}, 'index.html', 'Even Hub app entrypoint points at the built HTML root' );

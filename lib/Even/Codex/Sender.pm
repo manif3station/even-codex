@@ -7,7 +7,7 @@ use IO::Handle ();
 use IPC::Open3 ();
 use Symbol qw(gensym);
 
-our $VERSION = '0.24';
+our $VERSION = '0.25';
 
 sub new {
     my ( $class, %args ) = @_;

@@ -9,6 +9,7 @@ import {
 } from '@evenrealities/even_hub_sdk';
 
 type InputAction = 'send' | 'retry' | 'cancel';
+type GlassesSurfaceMode = 'transcript' | 'input';
 
 type SessionRecord = {
   id: string;
@@ -53,6 +54,7 @@ type PluginState = {
   config: StoredConfig;
   lifecycle: string;
   bridgeStatus: 'connected' | 'offline';
+  glassesSurfaceMode: GlassesSurfaceMode;
   selectedInputAction: InputAction;
   lastMessage: string;
   lastCheckedAt: string;
@@ -125,32 +127,30 @@ async function boot() {
   bridge.onEvenHubEvent(async (event) => {
     const sysEventType = event.sysEvent?.eventType;
     const isSimulatorBareClick = sysEventType === undefined && event.sysEvent?.eventSource === 1;
-    if (sysEventType === OsEventTypeList.DOUBLE_CLICK_EVENT) {
-      state.lastMessage = 'Double press received from glasses input.';
-      renderPhoneUi(state);
-      return;
-    }
+    const textEvent = event.textEvent;
+    const isTextContainerClick =
+      textEvent?.containerID === GLASSES_TRANSCRIPT_CONTAINER_ID &&
+      (textEvent.eventType === undefined || textEvent.eventType === OsEventTypeList.CLICK_EVENT);
+    const isTextContainerDoubleClick =
+      textEvent?.containerID === GLASSES_TRANSCRIPT_CONTAINER_ID &&
+      textEvent.eventType === OsEventTypeList.DOUBLE_CLICK_EVENT;
 
-    if (isSimulatorBareClick || sysEventType === OsEventTypeList.CLICK_EVENT) {
-      await refreshBootstrap(bridge, state, {
-        successMessage: 'Glasses click refreshed the live transcript.',
-        failureMessage: 'Glasses click refresh failed.',
-        quiet: true,
-      });
-      state.lastMessage = 'Glasses click refreshed the live transcript.';
+    if (sysEventType === OsEventTypeList.DOUBLE_CLICK_EVENT || isTextContainerDoubleClick) {
+      state.glassesSurfaceMode = 'transcript';
+      state.lastMessage = 'Glasses double press restored the live transcript view.';
       renderPhoneUi(state);
       await syncGlassesPage(bridge, state);
       return;
     }
 
-    const textEvent = event.textEvent;
-    if (textEvent?.eventType === OsEventTypeList.CLICK_EVENT) {
-      await refreshBootstrap(bridge, state, {
-        successMessage: 'Glasses click refreshed the live transcript.',
-        failureMessage: 'Glasses click refresh failed.',
-        quiet: true,
-      });
-      state.lastMessage = 'Glasses click refreshed the live transcript.';
+    if (isSimulatorBareClick || sysEventType === OsEventTypeList.CLICK_EVENT || isTextContainerClick) {
+      if (state.glassesSurfaceMode === 'input') {
+        await applyInputAction(bridge, state);
+      } else {
+        state.glassesSurfaceMode = 'input';
+        state.selectedInputAction = 'send';
+        state.lastMessage = 'Glasses press opened the staged query input view.';
+      }
       renderPhoneUi(state);
       await syncGlassesPage(bridge, state);
       return;
@@ -158,14 +158,26 @@ async function boot() {
 
     if (textEvent?.containerID === GLASSES_TRANSCRIPT_CONTAINER_ID) {
       if (textEvent.eventType === OsEventTypeList.SCROLL_TOP_EVENT) {
-        state.lastMessage = 'Glasses swipe up reached the transcript top.';
+        if (state.glassesSurfaceMode === 'input') {
+          cycleInputAction(state, -1);
+          state.lastMessage = `Glasses swipe up selected ${state.selectedInputAction.toUpperCase()}.`;
+        } else {
+          state.lastMessage = 'Glasses swipe up reached the transcript top.';
+        }
         renderPhoneUi(state);
+        await syncGlassesPage(bridge, state);
         return;
       }
 
       if (textEvent.eventType === OsEventTypeList.SCROLL_BOTTOM_EVENT) {
-        state.lastMessage = 'Glasses swipe down reached the transcript bottom.';
+        if (state.glassesSurfaceMode === 'input') {
+          cycleInputAction(state, 1);
+          state.lastMessage = `Glasses swipe down selected ${state.selectedInputAction.toUpperCase()}.`;
+        } else {
+          state.lastMessage = 'Glasses swipe down reached the transcript bottom.';
+        }
         renderPhoneUi(state);
+        await syncGlassesPage(bridge, state);
         return;
       }
     }
@@ -406,6 +418,7 @@ function createInitialState(config: StoredConfig): PluginState {
     config,
     lifecycle: 'ready',
     bridgeStatus: 'offline',
+    glassesSurfaceMode: 'transcript',
     selectedInputAction: 'send',
     lastMessage: 'Waiting for the D2-Codex bridge bootstrap.',
     lastCheckedAt: 'Not checked yet',
@@ -567,7 +580,7 @@ function renderPhoneUi(state: PluginState) {
             <li>Run <code>dashboard workspace foobar</code> in the project you want on glasses.</li>
             <li>Copy the Codex session id from <code>/status</code>.</li>
             <li>Save the pairing with <code>dashboard even-codex.start add &lt;codex-session-id&gt;</code>.</li>
-            <li>Start the full local flow with <code>dashboard even-codex.e2e start</code> or start the bridge with <code>dashboard even-codex.start</code>.</li>
+            <li>Start the full local flow with <code>dashboard even-codex.simulator start</code> or start the bridge with <code>dashboard even-codex.start</code>.</li>
           </ol>
         </section>
 
@@ -620,8 +633,8 @@ function renderPhoneUi(state: PluginState) {
           <h2 class="section-title">Glasses Controls</h2>
           <ul class="list">
             <li>Up and Down use the native Even transcript scroll path on the single glasses text window.</li>
-            <li>Click refreshes the transcript when the simulator reports a glasses press event.</li>
-            <li>Double-click stays reserved by the current Even SDK event model, so the plugin does not remap it to layout changes.</li>
+            <li>Click opens the staged query input view, and click again applies the selected action.</li>
+            <li>Double-click closes the input view and returns to the live transcript.</li>
             <li>Hold-to-dictate is not documented by the current Even SDK, so query entry stays in the phone-side composer.</li>
           </ul>
           <p class="status">${escapeHtml(state.lastMessage)}</p>
@@ -717,6 +730,10 @@ function buildTextObjects(state: PluginState) {
 }
 
 function buildTranscriptText(state: PluginState) {
+  if (state.glassesSurfaceMode === 'input') {
+    return buildInputText(state);
+  }
+
   const connector = getActiveConnector(state);
   const turns = connector.recentTurns.slice(-4);
   const lines: string[] = [];
@@ -752,6 +769,18 @@ function buildTranscriptText(state: PluginState) {
   return lines.join('\n');
 }
 
+function buildInputText(state: PluginState) {
+  const query = state.stagedQuery || state.draftQuery || 'No staged query.';
+  return [
+    'Input',
+    `Draft ${query}`,
+    `Action ${state.selectedInputAction.toUpperCase()}`,
+    'Up/down choose action',
+    'Click apply',
+    'Double-click close',
+  ].join('\n');
+}
+
 async function fetchJson<T>(url: string) {
   const response = await fetch(url);
   if (!response.ok) {
@@ -770,6 +799,7 @@ async function applyInputAction(
   if (state.selectedInputAction === 'cancel') {
     state.draftQuery = '';
     state.stagedQuery = '';
+    state.glassesSurfaceMode = 'transcript';
     state.lastMessage = 'Cancelled the staged query.';
     return;
   }
@@ -777,6 +807,7 @@ async function applyInputAction(
   if (state.selectedInputAction === 'retry') {
     state.draftQuery = normalized;
     state.stagedQuery = normalized;
+    state.glassesSurfaceMode = 'input';
     state.lastMessage = 'Retry selected. Update the draft and stage it again.';
     return;
   }
@@ -789,6 +820,7 @@ async function applyInputAction(
   state.lastSubmittedQuery = normalized;
   state.stagedQuery = normalized;
   state.draftQuery = normalized;
+  state.glassesSurfaceMode = 'transcript';
   state.lastMessage = `Submitting query to Codex: ${normalized}`;
 
   const connector = getActiveConnector(state);
@@ -810,6 +842,13 @@ function cycleSession(state: PluginState) {
   const currentIndex = connector.sessions.findIndex((session) => session.id === connector.activeSessionId);
   const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % connector.sessions.length : 0;
   connector.activeSessionId = connector.sessions[nextIndex]?.id || connector.activeSessionId;
+}
+
+function cycleInputAction(state: PluginState, delta: number) {
+  const actions: InputAction[] = ['send', 'retry', 'cancel'];
+  const currentIndex = actions.indexOf(state.selectedInputAction);
+  const nextIndex = (currentIndex + delta + actions.length) % actions.length;
+  state.selectedInputAction = actions[nextIndex];
 }
 
 function getActiveConnector(state: PluginState) {
