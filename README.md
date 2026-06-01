@@ -28,10 +28,10 @@ What it does right now:
 
 ## Installation
 
-Install the skill into Developer Dashboard:
+Install the skill into Developer Dashboard by repo name:
 
 ```bash
-dashboard skills install ~/projects/skills/skills/even-codex
+dashboard skills install even-codex
 ```
 
 ## CLI Usage
