@@ -105,7 +105,10 @@ Inside the glasses view, the user can:
 - refresh the active connector
 - scroll a single live transcript window with native Even swipe behavior
 - open a bottom popup prompt box with a glasses click while keeping the transcript visible behind it
+- arm a hybrid voice-query capture path from that popup when the companion WebView exposes speech recognition
+- mirror recognised speech into the staged popup draft before submission
 - cycle `Send`, `Retry`, and `Cancel` inside that popup with glasses swipe input
+- close the popup cleanly on an empty standby click instead of surfacing a dead-end send error
 - close the popup and return to transcript with a glasses double-click
 - see live assistant progress text while Codex is still answering
 - read recent prompt, progress, and reply text without extra glasses-side panes
@@ -158,11 +161,13 @@ The current packaged UX now includes:
 - a phone-side connection dashboard with setup checklist, connector profiles, session libraries, and refresh controls
 - a glasses-side transcript window that streams recent prompt, progress, and reply text above a bottom popup prompt box
 - a glasses-side bottom popup prompt box that opens after a glasses click and disappears after `Send`, `Cancel`, or double-click close
+- a hybrid voice-query path where a glasses click can start a companion webview speech-recognition session and mirror recognised text back into the popup draft
 - automatic background transcript refresh so the phone-side plugin and glasses view catch up to live Codex turns without a manual reload
 - native transcript scrolling by default, with swipe input repurposed to action cycling only while the glasses popup is open
 - a phone-side staged query composer that normalizes leading `Slash` or `slash` into `/`
+- explicit phone-side `Start Voice` and `Stop Voice` controls for the governed hybrid voice-input path
 - a live bridge submit path that writes staged queries into the paired Codex TUI session
-- a documented SDK limitation note that current Even docs do not describe a hold-to-dictate popup flow
+- a documented SDK limitation note that current Even docs do not describe a native hold-to-dictate popup flow, so the shipped voice path remains hybrid instead
 
 The current submission bundle now also includes:
 
@@ -194,6 +199,7 @@ That brings up the Even bridge on port `6789`, serves the Hub app locally, and s
 In the Dockerized noVNC desktop, the Codex xterm, the phone-side Even plugin, and the glasses view all reflect the paired session transcript. A live `hi -> Hi` smoke run has been proven end to end through fresh screenshot review of the running simulator desktop.
 The same simulator flow now also proves the staged query path: `slash ship status` is normalized to `/ship status` and shown in the phone plugin composer.
 The current release extends that to the visible simulator buttons too: a live screenshot-reviewed run proves transcript-by-default, the on-screen `Click` button opens a bottom popup box while keeping the transcript visible behind it, `Up` and `Down` change the selected action inside that popup, a second `Click` can dismiss the popup through `Cancel` or send the staged prompt, and `Double click` returns to the transcript.
+The current governed voice slice extends that further: a screenshot-reviewed browser proof now shows a glasses click opening the popup, a companion speech-recognition run filling `what is 2 plus 3` into the draft, and a second click submitting that recognised query through the existing prompt path.
 
 Edge-case example:
 

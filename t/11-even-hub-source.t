@@ -19,10 +19,17 @@ like( $package, qr/"build:hub"/, 'package.json exposes a build script for the Ev
 like( $package, qr/"pack:hub"/, 'package.json exposes a packaging script for the Even Hub app' );
 like( $package, qr/"capture:hub-screens"/, 'package.json exposes a screenshot capture script for the Even Hub app' );
 
+my $manifest = slurp('app.json');
+like( $manifest, qr/"name"\s*:\s*"g2-microphone"/, 'app.json requests the documented glasses microphone permission for hybrid voice input' );
+
 my $source = slurp('even-hub/src/main.ts');
 like( $source, qr/waitForEvenAppBridge/, 'Even Hub source waits for the Even app bridge' );
+like( $source, qr/__evenCodexWaitForBridge/, 'Even Hub source supports a bridge override hook for governed runtime proof' );
+like( $source, qr/__evenCodexSpeechRecognitionFactory/, 'Even Hub source supports a speech-recognition override hook for governed runtime proof' );
 like( $source, qr/createStartUpPageContainer/, 'Even Hub source creates a startup page container' );
 like( $source, qr/RebuildPageContainer/, 'Even Hub source rebuilds the glasses layout when the popup overlay changes container structure' );
+like( $source, qr/audioControl\(true\)/, 'Even Hub source starts the documented microphone path for hybrid voice capture' );
+like( $source, qr/audioControl\(false\)/, 'Even Hub source stops the microphone path when voice capture finishes' );
 like( $source, qr/OsEventTypeList\.DOUBLE_CLICK_EVENT/, 'Even Hub source handles glasses double-click events' );
 like( $source, qr/eventSource === 1/, 'Even Hub source treats bare simulator glasses-touch events as click-compatible input' );
 like( $source, qr/sysEventType === OsEventTypeList\.CLICK_EVENT/, 'Even Hub source handles simulator click gestures that arrive as system events' );
@@ -43,8 +50,19 @@ like( $source, qr/setLocalStorage/, 'Even Hub source persists setup through SDK 
 like( $source, qr/setInterval/, 'Even Hub source schedules background bridge refreshes' );
 like( $source, qr/normalizeDraftQuery/, 'Even Hub source normalizes staged query input' );
 like( $source, qr/buildInputText/, 'Even Hub source renders a dedicated glasses input view' );
+like( $source, qr/startVoiceInput/, 'Even Hub source defines a hybrid voice-input entrypoint' );
+like( $source, qr/stopVoiceInput/, 'Even Hub source defines a hybrid voice-input stop path' );
 like( $source, qr/rebuildPageContainer/, 'Even Hub source rebuilds the page container for popup overlay transitions' );
 like( $source, qr/GLASSES_TRANSCRIPT_CONTAINER_NAME/, 'Even Hub source uses a dedicated single transcript container' );
+like( $source, qr/loadBridge\(\)/, 'Even Hub source supports a bridge loader indirection for governed runtime proof' );
+like( $source, qr/speechRecognitionSupported/, 'Even Hub source detects speech-recognition support' );
+like( $source, qr/__evenCodexSpeechRecognitionFactory/, 'Even Hub source supports a speech-recognition factory override for runtime proof' );
+like( $source, qr/audioControl\(true\)/, 'Even Hub source requests microphone capture when the hybrid voice path starts' );
+like( $source, qr/startVoiceInput/, 'Even Hub source implements a dedicated voice-input start path' );
+like( $source, qr/Voice \$\{state\.voiceInputState\.toUpperCase\(\)\}/, 'Even Hub source surfaces voice state in the glasses popup copy' );
+like( $source, qr/truncateForGlasses/, 'Even Hub source trims voice status text for the glasses popup' );
+like( $source, qr/Closed the popup because there is no staged query yet\./, 'Even Hub source closes the popup instead of erroring on an empty standby send' );
+like( $source, qr/Voice capture stopped without recognised text\./, 'Even Hub source returns recording clicks to standby when no transcript is available' );
 
 my $style = slurp('even-hub/src/style.css');
 unlike( $style, qr/background(?:-color)?\s*:/i, 'Even Hub source styles avoid background fill declarations' );

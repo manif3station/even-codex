@@ -3,14 +3,14 @@
 ## Docker Verification
 
 ```bash
-docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-test bash -lc 'cd /workspace/skills/even-codex && rm -rf cover_db /workspace/skills/even-codex/cover_db .even-hub-build dist node_modules package-lock.json && npm install && HARNESS_PERL_SWITCHES=-MDevel::Cover prove -lr t && npm run build:hub && EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npm run pack:hub && EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npx evenhub pack .even-hub-build/app.json dist -o dist/test-listing.ehpk && cover -report text -select lib/Even/Codex/Spec.pm -select lib/Even/Codex/Protocol.pm -select lib/Even/Codex/State.pm -select lib/Even/Codex/Plugin.pm -select lib/Even/Codex/Sender.pm -select lib/Even/Codex/Server.pm -select lib/Even/Codex/Manager.pm -select lib/Even/Codex/Transcript.pm'
+docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-test bash -lc 'cd /workspace/skills/even-codex && rm -rf cover_db /workspace/skills/even-codex/cover_db .even-hub-build dist node_modules && npm ci && HARNESS_PERL_SWITCHES=-MDevel::Cover NODE_PATH=/opt/playwright/node_modules:/workspace/skills/even-codex/node_modules prove -lr t && npm run build:hub && EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npm run pack:hub && EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npx evenhub pack .even-hub-build/app.json dist -o dist/test-listing.ehpk && cover -report text -select lib/Even/Codex/Spec.pm -select lib/Even/Codex/Protocol.pm -select lib/Even/Codex/State.pm -select lib/Even/Codex/Plugin.pm -select lib/Even/Codex/Sender.pm -select lib/Even/Codex/Server.pm -select lib/Even/Codex/Manager.pm -select lib/Even/Codex/Transcript.pm'
 ```
 
 ## Verified Result
 
-- verified on 2026-06-01 for release `0.28`
-- all 21 test files passed
-- 634 assertions passed
+- verified on 2026-06-01 for release `0.29`
+- all 22 test files passed
+- `Files=22, Tests=662`
 - selected module statement coverage reached `100.0`
 - selected module subroutine coverage reached `100.0`
 - selected module branch coverage reached `100.0`
@@ -28,11 +28,16 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 - `t/18-simulator-codex-container.t` proved the simulator image installs `codex`, mounts host `~/.codex`, and defaults the desktop runtime to the caller uid and gid
 - `t/19-live-transcript.t` proved transcript parsing and the `/session` route
 - `t/20-sender.t` proved launcher-mode prompt submission, tty fallback, xterm lookup, and default command execution paths
+- `t/21-even-hub-voice-playwright.t` proved `glasses click -> recognised voice draft -> click submit` against a Vite-served Even Hub page with a fake bridge and fake speech-recognition engine
 - a real smoke run built the simulator image, started the containerized desktop, confirmed the runtime process was running as uid `1000`, confirmed `/home/dashboard/.codex` was present from the host mount, returned `HTTP 200` from `http://127.0.0.1:15700/`, and proved through fresh screenshot review outside the Perl suite that the noVNC desktop showed:
   - the Codex xterm with `hi` and `Hi`
   - the Even plugin with `Latest Prompt hi` and `Latest Reply Hi`
   - the glasses view staying on one transcript surface with `Prompt hi` and `Reply Hi`
   - the updated glasses control flow with transcript by default, the visible simulator `Click` button opening a bottom popup box while leaving the transcript visible behind it, visible `Up` or `Down` changing the staged action, a second visible `Click` dismissing the popup through `Cancel` or sending the staged prompt into Codex, and visible `Double click` restoring the transcript-only view
+- a separate browser screenshot review outside the Perl suite proved the hybrid voice-query slice with:
+  - a click-open popup path
+  - recognised text `what is 2 plus 3` mirrored into the draft and staged-query panels
+  - the same recognised text visible as the latest prompt after the second click send path
 
 Coverage summary from the verified run:
 

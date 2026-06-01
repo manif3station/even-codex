@@ -10,6 +10,7 @@ import {
 
 type InputAction = 'send' | 'retry' | 'cancel';
 type GlassesSurfaceMode = 'transcript' | 'input';
+type VoiceInputState = 'idle' | 'starting' | 'listening' | 'captured' | 'unsupported' | 'error';
 
 type SessionRecord = {
   id: string;
@@ -61,7 +62,44 @@ type PluginState = {
   draftQuery: string;
   stagedQuery: string;
   lastSubmittedQuery: string;
+  voiceInputState: VoiceInputState;
+  voiceSupported: boolean;
+  voiceStatus: string;
 };
+
+type SpeechRecognitionResultLike = {
+  isFinal?: boolean;
+  0?: { transcript?: string };
+  [index: number]: { transcript?: string } | undefined;
+};
+
+type SpeechRecognitionEventLike = {
+  resultIndex?: number;
+  results?: SpeechRecognitionResultLike[];
+};
+
+type SpeechRecognitionLike = {
+  continuous?: boolean;
+  interimResults?: boolean;
+  lang?: string;
+  onstart?: (() => void) | null;
+  onresult?: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror?: ((event: { error?: string }) => void) | null;
+  onend?: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+  abort?: () => void;
+};
+
+type EvenCodexBridgeLike = Awaited<ReturnType<typeof waitForEvenAppBridge>>;
+
+type TestWindow = Window &
+  typeof globalThis & {
+    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+    SpeechRecognition?: new () => SpeechRecognitionLike;
+    __evenCodexWaitForBridge?: () => Promise<EvenCodexBridgeLike>;
+    __evenCodexSpeechRecognitionFactory?: () => SpeechRecognitionLike;
+  };
 
 type BootstrapPayload = {
   workspace_ref: string;
@@ -108,7 +146,12 @@ const GLASSES_POPUP_CONTAINER_NAME = 'd2-codex-popup';
 const GLASSES_TRANSCRIPT_HEIGHT = 184;
 const GLASSES_POPUP_Y = 188;
 const GLASSES_POPUP_HEIGHT = 96;
+const CAN_USE_DOM_SPEECH_RECOGNITION = typeof window !== 'undefined';
 const app = document.querySelector<HTMLDivElement>('#app');
+const testWindow = window as TestWindow;
+const runtime = {
+  recognition: null as SpeechRecognitionLike | null,
+};
 
 if (!app) {
   throw new Error('Missing app container');
@@ -117,9 +160,13 @@ if (!app) {
 void boot();
 
 async function boot() {
-  const bridge = await waitForEvenAppBridge();
+  const bridge = await loadBridge();
   const config = await loadStoredConfig(bridge);
   const state = createInitialState(config);
+  state.voiceSupported = speechRecognitionSupported();
+  state.voiceStatus = state.voiceSupported
+    ? 'Voice query capture is ready when the webview exposes speech recognition.'
+    : 'Voice query capture is unavailable in this webview. Use the phone composer text area instead.';
 
   renderPhoneUi(state);
   await bridge.createStartUpPageContainer(buildStartupPage(state));
@@ -156,10 +203,11 @@ async function boot() {
         await applyInputAction(bridge, state);
       } else {
         state.glassesSurfaceMode = 'input';
-        state.selectedInputAction = hasActionableDraft(state) ? 'send' : 'cancel';
+        state.selectedInputAction = 'send';
         state.lastMessage = hasActionableDraft(state)
           ? 'Glasses press opened the staged query popup.'
-          : 'Glasses press opened the popup. Stage a query from the phone plugin or cancel.';
+          : 'Glasses press opened the popup and armed the voice query path.';
+        await startVoiceInput(bridge, state, { source: 'glasses-click' });
       }
       renderPhoneUi(state);
       await syncGlassesPage(bridge, state);
@@ -256,6 +304,12 @@ async function boot() {
       state.draftQuery = query;
       state.stagedQuery = query;
       state.selectedInputAction = 'send';
+      state.voiceInputState = 'idle';
+      state.voiceStatus = query
+        ? 'Typed query staged. Swipe to another action or click to apply.'
+        : state.voiceSupported
+          ? 'Type or speak a query before staging it.'
+          : 'Type a query before staging it.';
       state.lastMessage = query
         ? `Staged query ready. Use Send, Retry, or Cancel.`
         : 'Type or dictate a query before staging it.';
@@ -326,6 +380,7 @@ async function boot() {
     if (role === 'load-latest-prompt-button') {
       const activeConnector = getActiveConnector(state);
       state.draftQuery = activeConnector.lastUserMessage || state.lastSubmittedQuery || '';
+      state.stagedQuery = normalizeDraftQuery(state.draftQuery);
       state.lastMessage = state.draftQuery
         ? 'Loaded the latest prompt into the draft composer.'
         : 'There is no latest prompt to reuse yet.';
@@ -359,6 +414,20 @@ async function boot() {
     if (role === 'cancel-query-button') {
       state.selectedInputAction = 'cancel';
       await applyInputAction(bridge, state);
+      renderPhoneUi(state);
+      await syncGlassesPage(bridge, state);
+      return;
+    }
+
+    if (role === 'start-voice-query-button') {
+      await startVoiceInput(bridge, state, { source: 'phone-button' });
+      renderPhoneUi(state);
+      await syncGlassesPage(bridge, state);
+      return;
+    }
+
+    if (role === 'stop-voice-query-button') {
+      await stopVoiceInput(bridge, state, { keepDraft: true, reason: 'manual stop' });
       renderPhoneUi(state);
       await syncGlassesPage(bridge, state);
       return;
@@ -421,6 +490,24 @@ async function boot() {
       }
     }
   });
+
+  app.addEventListener('input', async (inputEvent) => {
+    const target = inputEvent.target;
+    if (!(target instanceof HTMLTextAreaElement)) {
+      return;
+    }
+
+    if (target.id !== 'draftQuery') {
+      return;
+    }
+
+    state.draftQuery = normalizeDraftQuery(target.value || '');
+    state.stagedQuery = state.draftQuery;
+    if (state.draftQuery) {
+      state.selectedInputAction = 'send';
+    }
+    await syncGlassesPage(bridge, state);
+  });
 }
 
 function createInitialState(config: StoredConfig): PluginState {
@@ -435,6 +522,9 @@ function createInitialState(config: StoredConfig): PluginState {
     draftQuery: '',
     stagedQuery: '',
     lastSubmittedQuery: '',
+    voiceInputState: 'idle',
+    voiceSupported: false,
+    voiceStatus: 'Voice query capture has not been initialized yet.',
   };
 }
 
@@ -553,6 +643,11 @@ function renderPhoneUi(state: PluginState) {
             <p class="value">${stagedQuery}</p>
           </article>
           <article class="panel">
+            <p class="label">Voice Query</p>
+            <p class="value">${escapeHtml(state.voiceInputState.toUpperCase())}</p>
+            <p class="hint">${escapeHtml(state.voiceStatus)}</p>
+          </article>
+          <article class="panel">
             <p class="label">Last Sent From Plugin</p>
             <p class="value">${submittedQuery}</p>
           </article>
@@ -566,14 +661,18 @@ function renderPhoneUi(state: PluginState) {
 
         <section class="panel stack">
           <h2 class="section-title">Query Composer</h2>
-          <p class="copy">The current Even SDK does not document a native hold-to-dictate sheet, so the simulator flow stages input in the phone plugin first. Any query that starts with <code>Slash</code> or <code>slash</code> is normalized to <code>/</code>.</p>
+          <p class="copy">The current Even SDK does not document a native hold-to-dictate sheet, so this app uses a hybrid flow: glasses clicks open the popup, the companion webview speech-recognition session fills the draft when available, and any query that starts with <code>Slash</code> or <code>slash</code> is normalized to <code>/</code>.</p>
           <form class="form" data-role="query-form">
             <label class="label" for="draftQuery">Draft Query</label>
             <textarea class="input input-area" id="draftQuery" name="draftQuery" rows="4" placeholder="Type or paste the next Codex query here.">${normalizedDraft}</textarea>
-            <p class="hint">Stage the query first, then choose Send, Retry, or Cancel. The live simulator review checks this state visually.</p>
+            <p class="hint">Stage the query first, or use the voice controls to fill it from speech. Then choose Send, Retry, or Cancel. The live simulator review checks this state visually.</p>
             <div class="action-row">
               <button class="button" type="button" data-role="load-slash-sample-button">Load Slash Sample</button>
               <button class="button" type="button" data-role="load-latest-prompt-button">Reuse Latest Prompt</button>
+            </div>
+            <div class="action-row">
+              <button class="button" type="button" data-role="start-voice-query-button">Start Voice</button>
+              <button class="button" type="button" data-role="stop-voice-query-button">Stop Voice</button>
             </div>
             <div class="action-row">
               <button class="button" type="button" data-role="stage-query-button">Stage Query</button>
@@ -643,9 +742,10 @@ function renderPhoneUi(state: PluginState) {
           <h2 class="section-title">Glasses Controls</h2>
           <ul class="list">
             <li>Up and Down use the native Even transcript scroll path on the single glasses text window.</li>
-            <li>Click opens the staged query popup over the transcript, and click again applies the selected action.</li>
+            <li>Click opens the staged query popup over the transcript and starts a companion voice-input attempt when speech recognition is available.</li>
+            <li>Recognised speech is mirrored into the popup draft so the next click can send it through the existing action flow.</li>
             <li>Double-click closes the popup and returns to the live transcript.</li>
-            <li>Hold-to-dictate is not documented by the current Even SDK, so query entry stays in the phone-side composer.</li>
+            <li>Hold-to-dictate is not documented by the current Even SDK, so this remains a hybrid glasses-plus-webview implementation instead of a native glasses dictation sheet.</li>
           </ul>
           <p class="status">${escapeHtml(state.lastMessage)}</p>
         </section>
@@ -805,10 +905,12 @@ function buildTranscriptText(state: PluginState) {
 }
 
 function buildInputText(state: PluginState) {
-  const query = state.stagedQuery || state.draftQuery || 'No staged query.';
+  const query = truncateForGlasses(state.stagedQuery || state.draftQuery || 'No staged query.');
   return [
     'Prompt Box',
     `Draft ${query}`,
+    `Voice ${state.voiceInputState.toUpperCase()}`,
+    truncateForGlasses(state.voiceStatus || 'Voice query status unavailable.'),
     `Action ${state.selectedInputAction.toUpperCase()}`,
     'Up/down choose action',
     'Click apply',
@@ -818,6 +920,166 @@ function buildInputText(state: PluginState) {
 
 function hasActionableDraft(state: PluginState) {
   return normalizeDraftQuery(state.stagedQuery || state.draftQuery || state.lastSubmittedQuery) !== '';
+}
+
+function voiceCaptureActive(state: PluginState) {
+  return state.voiceInputState === 'listening' || state.voiceInputState === 'starting';
+}
+
+function speechRecognitionSupported() {
+  if (!CAN_USE_DOM_SPEECH_RECOGNITION) {
+    return false;
+  }
+
+  if (typeof testWindow.__evenCodexSpeechRecognitionFactory === 'function') {
+    return true;
+  }
+
+  return !!(testWindow.SpeechRecognition || testWindow.webkitSpeechRecognition);
+}
+
+async function loadBridge() {
+  if (typeof testWindow.__evenCodexWaitForBridge === 'function') {
+    return testWindow.__evenCodexWaitForBridge();
+  }
+
+  return waitForEvenAppBridge();
+}
+
+function speechRecognitionFactory(): (() => SpeechRecognitionLike) | null {
+  if (!speechRecognitionSupported()) {
+    return null;
+  }
+
+  if (typeof testWindow.__evenCodexSpeechRecognitionFactory === 'function') {
+    return testWindow.__evenCodexSpeechRecognitionFactory;
+  }
+
+  const NativeRecognition = testWindow.SpeechRecognition || testWindow.webkitSpeechRecognition;
+  if (!NativeRecognition) {
+    return null;
+  }
+
+  return () => new NativeRecognition();
+}
+
+async function startVoiceInput(
+  bridge: EvenCodexBridgeLike,
+  state: PluginState,
+  options: { source: 'glasses-click' | 'phone-button' },
+) {
+  if (state.voiceInputState === 'listening' || state.voiceInputState === 'starting') {
+    state.lastMessage = 'Voice query capture is already active.';
+    return;
+  }
+
+  const factory = speechRecognitionFactory();
+  if (!factory) {
+    state.voiceInputState = 'unsupported';
+    state.voiceStatus = 'This webview does not expose speech recognition. Use the phone composer text area instead.';
+    state.lastMessage = 'Voice query capture is unavailable here. Type the query in the phone composer.';
+    return;
+  }
+
+  state.voiceInputState = 'starting';
+  state.voiceStatus = options.source === 'glasses-click'
+    ? 'Opening the voice query path from the glasses popup.'
+    : 'Opening the voice query path from the phone controls.';
+  state.lastMessage = state.voiceStatus;
+  const recognition = factory();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = 'en-GB';
+  runtime.recognition = recognition;
+
+  recognition.onstart = () => {
+    state.voiceInputState = 'listening';
+    state.voiceStatus = 'Listening for a voice query.';
+    state.lastMessage = 'Listening for a voice query.';
+    renderPhoneUi(state);
+    void syncGlassesPage(bridge, state);
+  };
+
+  recognition.onresult = (event) => {
+    const fragments: string[] = [];
+    for (let index = event.resultIndex || 0; index < (event.results || []).length; index += 1) {
+      const result = event.results?.[index];
+      const transcript = typeof result?.[0]?.transcript === 'string' ? result[0].transcript : '';
+      if (transcript) {
+        fragments.push(transcript);
+      }
+    }
+
+    const recognized = normalizeDraftQuery(fragments.join(' ').trim());
+    if (!recognized) {
+      return;
+    }
+
+    state.draftQuery = recognized;
+    state.stagedQuery = recognized;
+    state.selectedInputAction = 'send';
+    state.voiceInputState = 'captured';
+    state.voiceStatus = `Captured voice query: ${recognized}`;
+    state.lastMessage = 'Voice query captured. Swipe to another action or click to apply.';
+    renderPhoneUi(state);
+    void syncGlassesPage(bridge, state);
+  };
+
+  recognition.onerror = (event) => {
+    state.voiceInputState = 'error';
+    state.voiceStatus = `Voice query capture failed: ${event.error || 'unknown error'}`;
+    state.lastMessage = state.voiceStatus;
+    void bridge.audioControl(false).catch(() => {});
+    renderPhoneUi(state);
+    void syncGlassesPage(bridge, state);
+  };
+
+  recognition.onend = () => {
+    runtime.recognition = null;
+    void bridge.audioControl(false).catch(() => {});
+    if (state.voiceInputState === 'listening' || state.voiceInputState === 'starting') {
+      state.voiceInputState = hasActionableDraft(state) ? 'captured' : 'idle';
+      state.voiceStatus = hasActionableDraft(state)
+        ? 'Voice query captured. Ready to send.'
+        : 'Voice query capture ended without recognised text.';
+      state.lastMessage = state.voiceStatus;
+      renderPhoneUi(state);
+      void syncGlassesPage(bridge, state);
+    }
+  };
+
+  try {
+    await bridge.audioControl(true);
+  } catch (error) {
+    state.voiceStatus = `Glasses microphone request failed: ${formatError(error)}`;
+    state.lastMessage = state.voiceStatus;
+  }
+
+  try {
+    recognition.start();
+  } catch (error) {
+    runtime.recognition = null;
+    state.voiceInputState = 'error';
+    state.voiceStatus = `Voice query capture failed to start: ${formatError(error)}`;
+    state.lastMessage = state.voiceStatus;
+  }
+}
+
+async function stopVoiceInput(
+  bridge: EvenCodexBridgeLike,
+  state: PluginState,
+  options: { keepDraft: boolean; reason: string },
+) {
+  if (runtime.recognition) {
+    runtime.recognition.stop();
+    runtime.recognition = null;
+  }
+  await bridge.audioControl(false).catch(() => undefined);
+  state.voiceInputState = options.keepDraft && hasActionableDraft(state) ? 'captured' : 'idle';
+  state.voiceStatus = options.keepDraft && hasActionableDraft(state)
+    ? 'Voice query capture stopped. The recognised draft is still staged.'
+    : `Voice query capture stopped: ${options.reason}.`;
+  state.lastMessage = state.voiceStatus;
 }
 
 async function fetchJson<T>(url: string) {
@@ -833,9 +1095,10 @@ async function applyInputAction(
   bridge: Awaited<ReturnType<typeof waitForEvenAppBridge>>,
   state: PluginState,
 ) {
-  const normalized = normalizeDraftQuery(state.stagedQuery || state.draftQuery || state.lastSubmittedQuery);
+  let normalized = normalizeDraftQuery(state.stagedQuery || state.draftQuery || state.lastSubmittedQuery);
 
   if (state.selectedInputAction === 'cancel') {
+    await stopVoiceInput(bridge, state, { keepDraft: false, reason: 'cancelled' });
     state.draftQuery = '';
     state.stagedQuery = '';
     state.glassesSurfaceMode = 'transcript';
@@ -844,22 +1107,43 @@ async function applyInputAction(
   }
 
   if (state.selectedInputAction === 'retry') {
+    await stopVoiceInput(bridge, state, { keepDraft: true, reason: 'retry' });
     state.draftQuery = normalized;
     state.stagedQuery = normalized;
     state.glassesSurfaceMode = 'input';
-    state.lastMessage = 'Retry selected. Update the draft and stage it again.';
+    state.lastMessage = 'Retry selected. Speak again or update the draft and stage it again.';
+    if (state.voiceSupported) {
+      await startVoiceInput(bridge, state, { source: 'glasses-click' });
+    }
     return;
   }
 
+  if (state.selectedInputAction === 'send' && voiceCaptureActive(state)) {
+    await stopVoiceInput(bridge, state, { keepDraft: true, reason: 'submit intent' });
+    normalized = normalizeDraftQuery(state.stagedQuery || state.draftQuery || state.lastSubmittedQuery);
+    if (!normalized) {
+      state.glassesSurfaceMode = 'input';
+      state.lastMessage = 'Voice capture stopped without recognised text. Click again to close or speak again.';
+      state.voiceStatus = 'Voice query capture stopped without recognised text.';
+      return;
+    }
+  }
+
   if (!normalized) {
-    state.lastMessage = 'Cannot send an empty staged query.';
+    state.glassesSurfaceMode = 'transcript';
+    state.lastMessage = 'Closed the popup because there is no staged query yet.';
+    state.voiceStatus = state.voiceSupported
+      ? 'Popup closed with no staged query. Click again to reopen voice standby.'
+      : 'Popup closed with no staged query. Type a query in the phone composer first.';
     return;
   }
 
   state.lastSubmittedQuery = normalized;
   state.stagedQuery = normalized;
   state.draftQuery = normalized;
+  await stopVoiceInput(bridge, state, { keepDraft: true, reason: 'submit' });
   state.glassesSurfaceMode = 'transcript';
+  state.voiceStatus = 'Voice query ready for submission.';
   state.lastMessage = `Submitting query to Codex: ${normalized}`;
 
   const connector = getActiveConnector(state);
@@ -1100,6 +1384,10 @@ function truncate(value: string, maxLength: number) {
   }
 
   return `${value.slice(0, maxLength - 1)}…`;
+}
+
+function truncateForGlasses(value: string) {
+  return truncate(value, 56);
 }
 
 function normalizeOrigin(value: string) {

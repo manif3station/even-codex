@@ -3,7 +3,7 @@ package Even::Codex::Spec;
 use strict;
 use warnings;
 
-our $VERSION = '0.28';
+our $VERSION = '0.29';
 
 sub skill_name {
     return 'even-codex';

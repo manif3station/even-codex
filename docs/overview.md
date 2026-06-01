@@ -34,11 +34,14 @@ The packaged Even Hub app:
 - renders the glasses view as a transcript region plus a bottom popup prompt box when click input is active
 - keeps the transcript as the default glasses surface
 - opens a bottom popup prompt box after an explicit glasses click while leaving the transcript visible behind it
+- starts a hybrid voice-query attempt from that click when the companion webview exposes speech recognition
+- mirrors recognised speech back into the popup draft and the phone-side composer
 - scopes glasses `up` and `down` gestures to action cycling only while that popup is open
+- closes an empty standby popup on click instead of surfacing a dead-end send error
 - uses glasses double-click to close the popup and return to the transcript
-- keeps staged query composition and `Send`, `Retry`, and `Cancel` controls on the phone side
+- keeps staged query composition and `Send`, `Retry`, and `Cancel` controls on the phone side, now with explicit `Start Voice` and `Stop Voice` controls too
 - shows assistant progress text during live Codex work in the same transcript stream as prompt and reply text
-- records that the current Even docs do not document a native hold-to-dictate popup flow
+- records that the current Even docs do not document a native hold-to-dictate popup flow, so the shipped voice-input path is a hybrid glasses-plus-webview implementation
 - packages through `evenhub pack` into `dist/d2-codex.ehpk`
 
 The submission layer now also ships with the repo:

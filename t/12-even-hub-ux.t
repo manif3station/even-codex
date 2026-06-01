@@ -30,6 +30,8 @@ like( $source, qr/data-role="retry-query-button"/, 'phone UI exposes a retry que
 like( $source, qr/data-role="cancel-query-button"/, 'phone UI exposes a cancel query control' );
 like( $source, qr/data-role="load-slash-sample-button"/, 'phone UI exposes a slash-sample helper for simulator proof' );
 like( $source, qr/data-role="load-latest-prompt-button"/, 'phone UI exposes a latest-prompt helper for staged input reuse' );
+like( $source, qr/data-role="start-voice-query-button"/, 'phone UI exposes a voice-start control' );
+like( $source, qr/data-role="stop-voice-query-button"/, 'phone UI exposes a voice-stop control' );
 like( $source, qr/starts with <code>Slash<\/code>|normalize/i, 'phone UI explains slash normalization for staged queries' );
 like( $source, qr/\/session/, 'source fetches the live transcript route' );
 like( $source, qr/\/prompt/, 'source submits staged prompts through the bridge prompt route' );
@@ -42,13 +44,17 @@ like( $source, qr/OsEventTypeList\.CLICK_EVENT/, 'source handles click events fo
 like( $source, qr/sysEventType === OsEventTypeList\.CLICK_EVENT/, 'source accepts simulator click gestures that surface as system events' );
 like( $source, qr/textEvent\?->\{?containerID|\btextEvent\b/, 'source reacts to Even text events from glasses containers' );
 like( $source, qr/Up and Down use the native Even transcript scroll path/, 'phone UI explains native glasses transcript scrolling' );
-like( $source, qr/Click opens the staged query popup/, 'phone UI explains click-to-popup behavior' );
+like( $source, qr/Click opens the staged query popup over the transcript and starts a companion voice-input attempt/, 'phone UI explains click-to-popup voice behavior' );
+like( $source, qr/Recognised speech is mirrored into the popup draft/, 'phone UI explains that recognised speech flows back into the popup draft' );
 like( $source, qr/Double-click closes the popup and returns to the live transcript/, 'phone UI explains double-click popup restore behavior' );
-like( $source, qr/Hold-to-dictate is not documented by the current Even SDK/, 'phone UI explains the current hold limitation' );
+like( $source, qr/hybrid glasses-plus-webview implementation/, 'phone UI explains the hybrid voice-input limitation clearly' );
+like( $source, qr/Click again to close or speak again/, 'source surfaces a standby-close recovery message for empty voice captures' );
+like( $source, qr/Popup closed with no staged query/, 'source surfaces the close-on-empty-popup behavior clearly' );
 like( $source, qr/Prompt /, 'glasses transcript includes prompt lines' );
 like( $source, qr/Reply /, 'glasses transcript includes reply lines' );
 like( $source, qr/Progress /, 'glasses transcript includes progress lines' );
 like( $source, qr/Prompt Box/, 'glasses popup view includes a prompt-box heading' );
+like( $source, qr/Voice \$\{state\.voiceInputState\.toUpperCase\(\)\}/, 'glasses popup view includes the current voice state' );
 like( $source, qr/Action .*SEND|Action \$\{state\.selectedInputAction\.toUpperCase\(\)\}/, 'glasses input view includes the selected action label' );
 like( $source, qr/Up\/down choose action/, 'glasses input view explains swipe action cycling' );
 like( $source, qr/Click apply/, 'glasses input view explains click-to-apply' );

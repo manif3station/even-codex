@@ -44,7 +44,7 @@ Build the packaged `D2-Codex` app from the repo root:
 
 ```bash
 cd ~/projects/skills/skills/even-codex
-npm install
+npm ci
 npm run build:hub
 ```
 
@@ -252,22 +252,24 @@ Inside `D2-Codex`, the phone-side plugin now gives the user:
 - live transcript panels for the latest prompt and latest reply
 - background polling that refreshes the latest prompt and reply without a manual page reload
 - a staged query composer that turns a leading `Slash` or `slash` into `/`
+- explicit `Start Voice` and `Stop Voice` controls that exercise the hybrid voice-input path when speech recognition is available in the companion webview
 - explicit `Send`, `Retry`, and `Cancel` controls for the staged query flow
 
 Inside the glasses view, the same build now gives the user:
 
 - one full-screen live transcript window
-- a click-open bottom popup prompt box that keeps the transcript visible behind it and defaults to `Send` when an actionable draft exists
+- a click-open bottom popup prompt box that keeps the transcript visible behind it and defaults to `Send`
+- a hybrid voice-query path where the same click can start speech recognition in the companion webview and mirror recognised text into the popup draft
 - `up` and `down` action cycling only while that popup is open
-- a second glasses click path that applies the selected staged action from that popup
+- a second glasses click path that applies the selected staged action from that popup, or closes the popup cleanly when no staged draft exists yet
 - a double-click path back to the transcript view
 - prompt, progress, and reply text in the same scrolling stream
 
 On the glasses page, the current controls are:
 
 - swipe up and swipe down to use native transcript scrolling
-- click to open the bottom popup from the transcript, then click again to apply the selected staged action or dismiss `Cancel`
-- no hold-to-dictate popup, because the current Even SDK docs do not document one
+- click to open the bottom popup from the transcript, start the hybrid voice-input attempt when available, then click again to apply the selected staged action, close an empty standby popup, or dismiss `Cancel`
+- no native hold-to-dictate popup, because the current Even SDK docs do not document one; the shipped voice path stays hybrid and depends on the companion webview speech-recognition support
 
 ## Proven Outputs
 
@@ -277,3 +279,5 @@ On the glasses page, the current controls are:
 - `npm run build:hub` writes `dist/index.html` for Even Hub packaging
 - `EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npm run pack:hub` writes `dist/d2-codex.ehpk`
 - the packaged `D2-Codex` Hub app shows a guided phone-side connector and session dashboard plus a single-container glasses transcript layout
+- the hybrid voice-query browser proof shows `glasses click -> recognised draft -> click submit` with `what is 2 plus 3` flowing into the staged query and latest prompt panels
+- the popup no longer traps the user in an empty `SEND` error path; a click with no recognised or typed draft now closes back to transcript standby

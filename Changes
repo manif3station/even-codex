@@ -1,5 +1,20 @@
 Revision history for even-codex
 
+0.29 2026-06-01
+
+    - add a governed hybrid voice-query flow to the `D2-Codex` Even Hub app
+      so a glasses click can open the popup, start a speech-recognition
+      attempt in the companion webview, mirror recognised text into the draft,
+      and submit through the existing action path
+    - request the documented `g2-microphone` permission for the hybrid voice
+      flow and expose explicit phone-side `Start Voice` and `Stop Voice`
+      controls for proof and fallback handling
+    - add a browser-level Playwright proof for `glasses click -> voice draft ->
+      send` and refresh the governed release records around the new voice flow
+    - align the popup state machine to the reviewed modal flow so an empty
+      standby click closes cleanly and a recording click stops capture before
+      deciding whether a recognised draft exists to submit
+
 0.28 2026-06-01
 
     - rebuild the glasses page as a transcript region plus a bottom popup

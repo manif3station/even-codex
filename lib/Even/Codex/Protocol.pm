@@ -3,7 +3,7 @@ package Even::Codex::Protocol;
 use strict;
 use warnings;
 
-our $VERSION = '0.28';
+our $VERSION = '0.29';
 
 sub event_types {
     return (
