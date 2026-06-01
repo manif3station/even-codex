@@ -271,6 +271,25 @@ On the glasses page, the current controls are:
 - click to open the bottom popup from the transcript, start the hybrid voice-input attempt when available, then click again to apply the selected staged action, close an empty standby popup, or dismiss `Cancel`
 - no native hold-to-dictate popup, because the current Even SDK docs do not document one; the shipped voice path stays hybrid and depends on the companion webview speech-recognition support
 
+## Full End-To-End Operator Flow
+
+The release README now includes a dedicated `End-to-End Flow` section that
+walks the operator through the full lifecycle:
+
+1. start the local bridge or simulator flow on the laptop
+2. pair the workspace to a Codex session id
+3. open `D2-Codex` on the phone plugin
+4. let the plugin bootstrap the current session from `/health` and `/bootstrap`
+5. watch the glasses transcript surface reflect Codex prompt, progress, and reply
+6. single-click on the glasses to open the bottom popup over the transcript
+7. let the companion webview fill the staged draft when speech recognition is available
+8. single-click again to submit that recognised draft into the paired Codex session
+9. watch the updated Codex progress and reply stream back to both the phone plugin and the glasses transcript
+
+When voice recognition does not yield a staged draft, the next click closes the
+popup cleanly and records a recovery message instead of leaving the operator on
+an empty send state.
+
 ## Proven Outputs
 
 - `dashboard even-codex.start add <codex-session-id>` writes the current workspace pairing

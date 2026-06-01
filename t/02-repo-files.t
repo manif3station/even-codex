@@ -57,6 +57,7 @@ my @paths = (
     'docs/changes/2026-05-31-one-command-desktop-e2e.md',
     'docs/changes/2026-05-31-multi-connector-session-control.md',
     'docs/changes/2026-05-31-runnable-lan-bridge-and-plugin.md',
+    'docs/changes/2026-06-02-readme-e2e-flow.md',
     'tickets/SOW.md',
     'tickets/EPIC-315.md',
     'tickets/EPIC-322.md',
@@ -85,8 +86,10 @@ my @paths = (
     'tickets/DD-335.md',
     'tickets/DD-343.md',
     'tickets/DD-344.md',
+    'tickets/DD-356.md',
     'tickets/EPIC-343.md',
     'tickets/EPIC-334.md',
+    'tickets/EPIC-356.md',
     'tickets/TESTING.md',
     't/12-even-hub-ux.t',
     't/13-even-hub-listing.t',
@@ -107,8 +110,20 @@ open my $spec_fh, '<', Even::Codex::Spec::spec_path() or die "Unable to open SPE
 my $spec = do { local $/; <$spec_fh> };
 close $spec_fh;
 
+open my $readme_fh, '<', 'README.md' or die "Unable to open README.md: $!";
+my $readme = do { local $/; <$readme_fh> };
+close $readme_fh;
+
 for my $heading (Even::Codex::Spec::required_sections()) {
     like($spec, qr/^## .*?\Q$heading\E/m, "SPEC.md includes $heading section");
 }
+
+like( $readme, qr/^## End-to-End Flow$/m, 'README.md includes the end-to-end flow heading' );
+like( $readme, qr/Start the skill on the laptop\./, 'README.md explains the bridge start step' );
+like( $readme, qr/Pair the workspace to a Codex session\./, 'README.md explains the pairing step' );
+like( $readme, qr/Open `D2-Codex` on the phone plugin\./, 'README.md explains the phone plugin step' );
+like( $readme, qr/The glasses receive the transcript view\./, 'README.md explains the glasses transcript step' );
+like( $readme, qr/User interaction starts from the glasses click\./, 'README.md explains the popup interaction step' );
+like( $readme, qr/The skill submits the query into the paired Codex session\./, 'README.md explains the return path into Codex' );
 
 done_testing;

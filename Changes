@@ -14,6 +14,9 @@ Revision history for even-codex
     - align the popup state machine to the reviewed modal flow so an empty
       standby click closes cleanly and a recording click stops capture before
       deciding whether a recognised draft exists to submit
+    - add a dedicated README end-to-end flow section so the shipped docs explain
+      the full path from bridge startup and Codex transcript streaming through
+      glasses popup interaction and query submission back into Codex
 
 0.28 2026-06-01
 

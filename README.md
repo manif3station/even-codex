@@ -209,6 +209,67 @@ EVEN_CODEX_HOST=0.0.0.0 EVEN_CODEX_PORT=6790 EVEN_CODEX_ADVERTISE_HOST=192.168.1
 
 Use this when the phone-hosted Even app must connect to a different LAN host or port than the defaults.
 
+## End-to-End Flow
+
+1. Start the skill on the laptop.
+   Run the local `even-codex` bridge or the simulator flow for the workspace
+   that is paired to a Codex session.
+2. Pair the workspace to a Codex session.
+   The skill stores which Codex session belongs to the current workspace so the
+   phone plugin and glasses keep following the same conversation.
+3. Open `D2-Codex` on the phone plugin.
+   The phone plugin becomes the control surface and shows the active connector,
+   workspace, Codex session, latest prompt, latest reply, latest progress, and
+   staged query state.
+4. The plugin connects to the local bridge.
+   It calls `/health` and `/bootstrap`, confirms the pairing, and loads the
+   current Codex session snapshot.
+5. The glasses receive the transcript view.
+   The glasses do not become a full text editor; they show a transcript window
+   driven by the paired Codex session state from the bridge.
+6. Codex starts producing output.
+   When Codex is already running or when a prompt is sent, the bridge turns the
+   paired session into the latest prompt, progress text, final reply, and
+   recent-turn state.
+7. The phone plugin shows that state.
+   The plugin panels update so the operator can see what Codex is doing on the
+   phone.
+8. The glasses show that state too.
+   The glasses transcript keeps showing Codex progress and the final reply.
+9. User interaction starts from the glasses click.
+   A single glasses click opens the bottom popup over the transcript instead of
+   replacing the full screen.
+10. If hybrid voice input is available, voice capture starts.
+    Because the current Even SDK does not expose native glasses text entry, the
+    companion webview starts speech recognition when available.
+11. The user's spoken query becomes the draft.
+    Recognised speech is mirrored into the phone draft query, the staged query
+    state, and the glasses popup state.
+12. The user confirms with another click.
+    Once a real staged query exists, the next glasses click applies the current
+    popup action, which stays on the send path by default.
+13. The skill submits the query into the paired Codex session.
+    The plugin sends the staged query through `/prompt`, and the bridge
+    forwards it into the paired Codex TUI session.
+14. Codex starts responding.
+    Progress messages, final replies, and the session snapshot refresh as Codex
+    answers.
+15. The phone plugin updates live.
+    `Latest Prompt`, `Latest Progress`, and `Latest Reply` follow the active
+    turn.
+16. The glasses update live too.
+    The glasses transcript continues showing the evolving Codex conversation,
+    so the operator can read streaming progress and the answer without leaving
+    the glasses surface.
+17. If voice input is unavailable or fails.
+    If the webview never produces a recognised draft, the popup can close
+    cleanly on the next click and show a recovery message instead of trapping
+    the user in a dead-end send state.
+18. Double-click returns to transcript mode.
+    When the operator wants to dismiss the popup and just watch the transcript,
+    a glasses double-click closes the popup and restores the transcript-focused
+    view.
+
 ## Documentation
 
 - [Specification](SPEC.md)

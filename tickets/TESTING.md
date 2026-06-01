@@ -10,7 +10,7 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 
 - verified on 2026-06-01 for release `0.29`
 - all 22 test files passed
-- `Files=22, Tests=664`
+- `Files=22, Tests=674`
 - selected module statement coverage reached `100.0`
 - selected module subroutine coverage reached `100.0`
 - selected module branch coverage reached `100.0`
@@ -30,6 +30,7 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 - `t/20-sender.t` proved launcher-mode prompt submission, tty fallback, xterm lookup, and default command execution paths
 - `t/21-even-hub-voice-playwright.t` proved `glasses click -> recognised voice draft -> click submit` against a Vite-served Even Hub page with a fake bridge and fake speech-recognition engine
 - `t/21-even-hub-voice-playwright.t` also proved the empty standby recovery path where a second click closes the popup cleanly instead of surfacing a dead-end send error
+- `t/02-repo-files.t` now proves the README keeps the governed end-to-end flow section for the bridge, plugin, glasses transcript, popup interaction, and Codex return path
 - a real smoke run built the simulator image, started the containerized desktop, confirmed the runtime process was running as uid `1000`, confirmed `/home/dashboard/.codex` was present from the host mount, returned `HTTP 200` from `http://127.0.0.1:15700/`, and proved through fresh screenshot review outside the Perl suite that the noVNC desktop showed:
   - the Codex xterm with `hi` and `Hi`
   - the Even plugin with `Latest Prompt hi` and `Latest Reply Hi`
@@ -40,6 +41,7 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
   - recognised text `what is 2 plus 3` mirrored into the draft and staged-query panels
   - the same recognised text visible as the latest prompt after the second click send path
   - an empty standby click path that closes back to transcript mode with a clear recovery message
+  - the README end-to-end release explanation matches the shipped interaction model the screenshots prove
 
 Coverage summary from the verified run:
 
