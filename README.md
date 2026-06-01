@@ -104,7 +104,7 @@ Inside the glasses view, the user can:
 - switch between saved sessions for the active connector
 - refresh the active connector
 - scroll a single live transcript window with native Even swipe behavior
-- open the staged query input view with a glasses click
+- open the staged query input view with a glasses click only when a staged or reusable draft exists
 - cycle `Send`, `Retry`, and `Cancel` inside that input view with glasses swipe input
 - close the input view and return to transcript with a glasses double-click
 - see live assistant progress text while Codex is still answering
@@ -157,7 +157,7 @@ The current packaged UX now includes:
 
 - a phone-side connection dashboard with setup checklist, connector profiles, session libraries, and refresh controls
 - a glasses-side single transcript window that streams recent prompt, progress, and reply text
-- a glasses-side staged query input view that opens only after a glasses click and defaults to `Send`
+- a glasses-side staged query input view that opens only after a glasses click when a staged or reusable draft exists, and defaults to `Send`
 - automatic background transcript refresh so the phone-side plugin and glasses view catch up to live Codex turns without a manual reload
 - native transcript scrolling by default, with swipe input repurposed to action cycling only while the glasses input view is open
 - a phone-side staged query composer that normalizes leading `Slash` or `slash` into `/`
@@ -193,7 +193,7 @@ dashboard even-codex.simulator start
 That brings up the Even bridge on port `6789`, serves the Hub app locally, and starts the Dockerized Even simulator desktop by default. After that, the phone plugin can save more connector origins and more session ids without leaving the Even app.
 In the Dockerized noVNC desktop, the Codex xterm, the phone-side Even plugin, and the glasses view all reflect the paired session transcript. A live `hi -> Hi` smoke run has been proven end to end through fresh screenshot review of the running simulator desktop.
 The same simulator flow now also proves the staged query path: `slash ship status` is normalized to `/ship status` and shown in the phone plugin composer.
-The current release extends that to the visible simulator buttons too: a live screenshot-reviewed run proves transcript-by-default, the on-screen `Click` button opens the staged input view, `Up` and `Down` change the selected action inside that view, the on-screen `Click` button can send the staged prompt, and `Double click` returns to the transcript.
+The current release extends that to the visible simulator buttons too: a live screenshot-reviewed run proves transcript-by-default, the on-screen `Click` button keeps the transcript visible when nothing is staged, the same `Click` button opens the staged input view only when a real draft exists, `Up` and `Down` change the selected action inside that view, the on-screen `Click` button can send the staged prompt, and `Double click` returns to the transcript.
 
 Edge-case example:
 

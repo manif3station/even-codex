@@ -43,6 +43,7 @@ like( $source, qr/sysEventType === OsEventTypeList\.CLICK_EVENT/, 'source accept
 like( $source, qr/textEvent\?->\{?containerID|\btextEvent\b/, 'source reacts to Even text events from glasses containers' );
 like( $source, qr/Up and Down use the native Even transcript scroll path/, 'phone UI explains native glasses transcript scrolling' );
 like( $source, qr/Click opens the staged query input view/, 'phone UI explains click-to-input behavior' );
+like( $source, qr/stage one from the phone plugin first/i, 'phone UI source carries the no-staged-query guidance used by the glasses click guard' );
 like( $source, qr/Double-click closes the input view and returns to the live transcript/, 'phone UI explains double-click transcript restore behavior' );
 like( $source, qr/Hold-to-dictate is not documented by the current Even SDK/, 'phone UI explains the current hold limitation' );
 like( $source, qr/Prompt /, 'glasses transcript includes prompt lines' );

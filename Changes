@@ -1,5 +1,12 @@
 Revision history for even-codex
 
+0.27 2026-06-01
+
+    - keep the glasses transcript visible when the user presses `Click`
+      without any staged, drafted, or reusable query to act on
+    - require a real actionable draft before the glasses input view opens,
+      so the simulator no longer swaps into a useless `No staged query` view
+
 0.26 2026-06-01
 
     - fix the Hub WebView `POST /prompt` path by adding the CORS preflight

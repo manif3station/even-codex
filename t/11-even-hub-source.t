@@ -35,6 +35,8 @@ like( $source, qr/OsEventTypeList\.SCROLL_TOP_EVENT/, 'Even Hub source handles u
 like( $source, qr/OsEventTypeList\.SCROLL_BOTTOM_EVENT/, 'Even Hub source handles downward glasses navigation events' );
 like( $source, qr/cycleInputAction/, 'Even Hub source cycles staged actions from glasses swipe input' );
 like( $source, qr/selectedInputAction = 'send'/, 'Even Hub source resets the glasses input view to Send by default' );
+like( $source, qr/hasActionableDraft/, 'Even Hub source guards the glasses input view behind a real staged draft' );
+like( $source, qr/No staged query is ready\. Stage one from the phone plugin first\./, 'Even Hub source records a no-staged-query status when glasses click has nothing actionable' );
 like( $source, qr/getLocalStorage/, 'Even Hub source remembers setup through SDK local storage' );
 like( $source, qr/setLocalStorage/, 'Even Hub source persists setup through SDK local storage' );
 like( $source, qr/setInterval/, 'Even Hub source schedules background bridge refreshes' );

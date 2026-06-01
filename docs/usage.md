@@ -257,7 +257,7 @@ Inside `D2-Codex`, the phone-side plugin now gives the user:
 Inside the glasses view, the same build now gives the user:
 
 - one full-screen live transcript window
-- a click-open staged query input view that defaults to `Send`
+- a click-open staged query input view that defaults to `Send` and only opens when a staged or reusable draft exists
 - `up` and `down` action cycling only while that input view is open
 - a second glasses click path that applies the selected staged action from that input view
 - a double-click path back to the transcript view
@@ -266,7 +266,7 @@ Inside the glasses view, the same build now gives the user:
 On the glasses page, the current controls are:
 
 - swipe up and swipe down to use native transcript scrolling
-- click to open the staged input view from the transcript, then click again to apply the selected staged action
+- click to open the staged input view from the transcript only when a staged or reusable draft exists, then click again to apply the selected staged action
 - no hold-to-dictate popup, because the current Even SDK docs do not document one
 
 ## Proven Outputs

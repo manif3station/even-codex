@@ -146,10 +146,13 @@ async function boot() {
     if (isSimulatorBareClick || sysEventType === OsEventTypeList.CLICK_EVENT || isTextContainerClick) {
       if (state.glassesSurfaceMode === 'input') {
         await applyInputAction(bridge, state);
-      } else {
+      } else if (hasActionableDraft(state)) {
         state.glassesSurfaceMode = 'input';
         state.selectedInputAction = 'send';
         state.lastMessage = 'Glasses press opened the staged query input view.';
+      } else {
+        state.glassesSurfaceMode = 'transcript';
+        state.lastMessage = 'No staged query is ready. Stage one from the phone plugin first.';
       }
       renderPhoneUi(state);
       await syncGlassesPage(bridge, state);
@@ -779,6 +782,10 @@ function buildInputText(state: PluginState) {
     'Click apply',
     'Double-click close',
   ].join('\n');
+}
+
+function hasActionableDraft(state: PluginState) {
+  return normalizeDraftQuery(state.stagedQuery || state.draftQuery || state.lastSubmittedQuery) !== '';
 }
 
 async function fetchJson<T>(url: string) {
