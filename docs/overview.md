@@ -53,5 +53,6 @@ The submission layer now also ships with the repo:
 - a host-UID default runtime model for the simulator container so mounted Codex auth is not rewritten by `root`
 - a one-command desktop E2E CLI that launches the bridge, app server, and simulator together
 - a skill-local release rule that keeps simulator screenshot interpretation outside the Perl `.t` suite and requires fresh human or LLM review
+- a release rule that requires the visible simulator control buttons to be verified on screen for tickets that change glasses interactions, instead of relying only on HTTP automation
 
 The full product specification still matters. The shipped runtime is only the first local bridge slice, and the broader relay-plus-plugin architecture is still described in `SPEC.md` for later tickets.

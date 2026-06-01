@@ -154,6 +154,7 @@ For tickets that change the live query loop, extend the same review with:
 - the same query visible in the Codex TUI
 - assistant progress text visible on the glasses while the answer is forming
 - the glasses view showing transcript by default, the staged input view only after `click`, action changes after `up` or `down`, and transcript restore after `double_click`
+- for glasses-interaction tickets, visible simulator button proof that the on-screen `Click`, `Up`, `Down`, and `Double click` controls change the glasses UI exactly as expected
 
 This interpretation rule is reusable and permanent for this skill. The image or
 framebuffer capture may be scripted, but the visual judgement must remain a
@@ -258,14 +259,14 @@ Inside the glasses view, the same build now gives the user:
 - one full-screen live transcript window
 - a click-open staged query input view that defaults to `Send`
 - `up` and `down` action cycling only while that input view is open
+- a second glasses click path that applies the selected staged action from that input view
 - a double-click path back to the transcript view
 - prompt, progress, and reply text in the same scrolling stream
-- click-triggered transcript refresh when the simulator reports a glasses press
 
 On the glasses page, the current controls are:
 
 - swipe up and swipe down to use native transcript scrolling
-- click to request a transcript refresh in the current simulator path
+- click to open the staged input view from the transcript, then click again to apply the selected staged action
 - no hold-to-dictate popup, because the current Even SDK docs do not document one
 
 ## Proven Outputs

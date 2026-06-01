@@ -10,7 +10,7 @@ use Even::Codex::Plugin ();
 use Even::Codex::Sender ();
 use Even::Codex::Transcript ();
 
-our $VERSION = '0.25';
+our $VERSION = '0.26';
 
 sub new {
     my ( $class, %args ) = @_;
@@ -175,7 +175,8 @@ sub _handle_client {
     print {$client} "HTTP/1.1 $status " . _status_text($status) . "\r\n";
     print {$client} "Content-Type: $content_type\r\n";
     print {$client} "Access-Control-Allow-Origin: *\r\n";
-    print {$client} "Access-Control-Allow-Methods: GET, POST\r\n";
+    print {$client} "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n";
+    print {$client} "Access-Control-Allow-Headers: Content-Type\r\n";
     print {$client} "Content-Length: " . length($response_body) . "\r\n";
     print {$client} "Connection: close\r\n\r\n";
     print {$client} $response_body;
@@ -185,6 +186,10 @@ sub _handle_client {
 
 sub _response_for_request {
     my ( $self, $method, $path, $body ) = @_;
+
+    if ( $method eq 'OPTIONS' && $path eq '/prompt' ) {
+        return ( 204, 'text/plain; charset=utf-8', q{} );
+    }
 
     if ( $method eq 'POST' && $path eq '/prompt' ) {
         my $payload = {};
@@ -228,6 +233,7 @@ sub _status_text {
     my ($status) = @_;
     return 'OK' if $status == 200;
     return 'Accepted' if $status == 202;
+    return 'No Content' if $status == 204;
     return 'Bad Request' if $status == 400;
     return 'Not Found';
 }

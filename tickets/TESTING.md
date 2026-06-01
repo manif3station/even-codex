@@ -8,9 +8,9 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 
 ## Verified Result
 
-- verified on 2026-06-01
+- verified on 2026-06-01 for release `0.26`
 - all 21 test files passed
-- 625 assertions passed
+- 631 assertions passed
 - selected module statement coverage reached `100.0`
 - selected module subroutine coverage reached `100.0`
 - selected module branch coverage reached `100.0`
@@ -32,7 +32,7 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
   - the Codex xterm with `hi` and `Hi`
   - the Even plugin with `Latest Prompt hi` and `Latest Reply Hi`
   - the glasses view staying on one transcript surface with `Prompt hi` and `Reply Hi`
-  - the updated glasses control flow with transcript by default, `Click` opening the staged input view with `Action SEND`, `Down` cycling the staged action to `Action RETRY`, and `Double click` restoring the transcript view
+  - the updated glasses control flow with transcript by default, the visible simulator `Click` button opening the staged input view with `Action SEND`, visible `Up` or `Down` changing the staged action, a second visible `Click` sending the staged prompt into Codex, and visible `Double click` restoring the transcript view
 
 Coverage summary from the verified run:
 

@@ -1,5 +1,12 @@
 Revision history for even-codex
 
+0.26 2026-06-01
+
+    - fix the Hub WebView `POST /prompt` path by adding the CORS preflight
+      response and header contract required for manual glasses-button sends
+    - add the governed manual simulator-button release slice for glasses-side
+      send proof
+
 0.25 2026-06-01
 
     - align the glasses input flow to the current Even simulator click model

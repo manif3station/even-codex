@@ -193,7 +193,7 @@ dashboard even-codex.simulator start
 That brings up the Even bridge on port `6789`, serves the Hub app locally, and starts the Dockerized Even simulator desktop by default. After that, the phone plugin can save more connector origins and more session ids without leaving the Even app.
 In the Dockerized noVNC desktop, the Codex xterm, the phone-side Even plugin, and the glasses view all reflect the paired session transcript. A live `hi -> Hi` smoke run has been proven end to end through fresh screenshot review of the running simulator desktop.
 The same simulator flow now also proves the staged query path: `slash ship status` is normalized to `/ship status` and shown in the phone plugin composer.
-The current release extends that to the glasses controls too: a live screenshot-reviewed run proves transcript-by-default, `click -> input view`, `down -> Retry`, and `double-click -> transcript`.
+The current release extends that to the visible simulator buttons too: a live screenshot-reviewed run proves transcript-by-default, the on-screen `Click` button opens the staged input view, `Up` and `Down` change the selected action inside that view, the on-screen `Click` button can send the staged prompt, and `Double click` returns to the transcript.
 
 Edge-case example:
 

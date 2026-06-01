@@ -53,7 +53,7 @@ if ( $pid == 0 ) {
             EVEN_CODEX_CODEX_HOME  => $codex_home,
         },
     );
-    $server->serve( max_requests => 11 );
+    $server->serve( max_requests => 12 );
     exit 0;
 }
 
@@ -88,10 +88,20 @@ eval {
 
     my $prompt = _http_request( $port, 'POST', '/prompt', '{"query":"what is the year today?"}' );
     is( $prompt->{status}, 202, '/prompt accepts a prompt submission' );
+    is( $prompt->{access_control_allow_methods}, 'GET, POST, OPTIONS', '/prompt advertises the CORS methods needed by the Hub WebView' );
+    is( $prompt->{access_control_allow_headers}, 'Content-Type', '/prompt advertises the JSON content header needed by the Hub WebView' );
     my $prompt_payload = decode_json( $prompt->{body} );
     ok( $prompt_payload->{ok}, '/prompt reports ok' );
     is( $prompt_payload->{queued_query}, 'what is the year today?', '/prompt returns the queued query text' );
     is( $prompt_payload->{tty}, 'pts/9', '/prompt returns the tty used for Codex prompt submission' );
+
+    my $prompt_preflight = _http_request( $port, 'OPTIONS', '/prompt' );
+    is( $prompt_preflight->{status}, 204, '/prompt accepts the CORS preflight request used by the Hub WebView' );
+    is( $prompt_preflight->{access_control_allow_methods}, 'GET, POST, OPTIONS', '/prompt preflight reports the allowed methods' );
+    is( $prompt_preflight->{access_control_allow_headers}, 'Content-Type', '/prompt preflight reports the allowed headers' );
+
+    my $wrong_preflight = _http_request( $port, 'OPTIONS', '/health' );
+    is( $wrong_preflight->{status}, 404, 'OPTIONS only matches the prompt preflight route' );
 
     my $plugin = _http_get( $port, '/plugin/' );
     is( $plugin->{status}, 200, '/plugin/ returns HTTP 200' );
@@ -152,12 +162,18 @@ sub _http_request {
     my ($status) = $head =~ m{\AHTTP/1\.1\s+(\d+)};
     my ($content_type) = $head =~ /^Content-Type:\s*(.+)$/mi;
     my ($allow_origin) = $head =~ /^Access-Control-Allow-Origin:\s*(.+)$/mi;
+    my ($allow_methods) = $head =~ /^Access-Control-Allow-Methods:\s*(.+)$/mi;
+    my ($allow_headers) = $head =~ /^Access-Control-Allow-Headers:\s*(.+)$/mi;
     $content_type =~ s/\r\z// if defined $content_type;
     $allow_origin =~ s/\r\z// if defined $allow_origin;
+    $allow_methods =~ s/\r\z// if defined $allow_methods;
+    $allow_headers =~ s/\r\z// if defined $allow_headers;
     return {
         status                      => 0 + $status,
         content_type                => $content_type,
         access_control_allow_origin => $allow_origin,
+        access_control_allow_methods => $allow_methods,
+        access_control_allow_headers => $allow_headers,
         body                        => defined $response_body ? $response_body : q{},
     };
 }
