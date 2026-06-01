@@ -31,11 +31,11 @@ The packaged Even Hub app:
 - persists the bridge origin through SDK local storage
 - exposes a phone-side setup dashboard with connector profile management, session libraries, refresh, and pairing guidance
 - auto-refreshes the bridge transcript in the background so glasses and phone stay aligned with the current Codex turn
-- renders a single full-screen glasses transcript container instead of multiple panes
+- renders the glasses view as a transcript region plus a bottom popup prompt box when click input is active
 - keeps the transcript as the default glasses surface
-- opens a staged query input view only after an explicit glasses click
-- scopes glasses `up` and `down` gestures to action cycling only while that input view is open
-- uses glasses double-click to close the input view and return to the transcript
+- opens a bottom popup prompt box after an explicit glasses click while leaving the transcript visible behind it
+- scopes glasses `up` and `down` gestures to action cycling only while that popup is open
+- uses glasses double-click to close the popup and return to the transcript
 - keeps staged query composition and `Send`, `Retry`, and `Cancel` controls on the phone side
 - shows assistant progress text during live Codex work in the same transcript stream as prompt and reply text
 - records that the current Even docs do not document a native hold-to-dictate popup flow

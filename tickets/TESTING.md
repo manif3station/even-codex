@@ -8,7 +8,7 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 
 ## Verified Result
 
-- verified on 2026-06-01 for release `0.27`
+- verified on 2026-06-01 for release `0.28`
 - all 21 test files passed
 - 634 assertions passed
 - selected module statement coverage reached `100.0`
@@ -18,7 +18,7 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 - `t/08-plugin-playwright.t` passed and proved the bundled Even plugin page renders paired session data from `/bootstrap`
 - `npm run build:hub` produced `dist/index.html`
 - `EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npm run pack:hub` produced `dist/d2-codex.ehpk`
-- `t/12-even-hub-ux.t` proved the stronger phone-side controls plus glasses `click -> input`, `down -> action cycle`, and `double-click -> transcript` wiring
+- `t/12-even-hub-ux.t` proved the stronger phone-side controls plus glasses bottom-popup `click -> popup`, `down -> action cycle`, and `double-click -> transcript` wiring
 - `t/13-even-hub-listing.t` proved the listing metadata, greyscale assets, and screenshot workflow files
 - `EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npx evenhub pack .even-hub-build/app.json dist -o dist/test-listing.ehpk` proved the richer manifest fields still pack
 - `t/14-simulator-cli.t` proved the bash simulator controller start and stop lifecycle
@@ -32,8 +32,7 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
   - the Codex xterm with `hi` and `Hi`
   - the Even plugin with `Latest Prompt hi` and `Latest Reply Hi`
   - the glasses view staying on one transcript surface with `Prompt hi` and `Reply Hi`
-  - the updated glasses control flow with transcript by default, the visible simulator `Click` button opening the staged input view with `Action SEND`, visible `Up` or `Down` changing the staged action, a second visible `Click` sending the staged prompt into Codex, and visible `Double click` restoring the transcript view
-  - the guarded glasses click path at `0.27`, where a visible simulator `Click` with no staged query leaves the glasses transcript unchanged instead of opening a useless `No staged query` view
+  - the updated glasses control flow with transcript by default, the visible simulator `Click` button opening a bottom popup box while leaving the transcript visible behind it, visible `Up` or `Down` changing the staged action, a second visible `Click` dismissing the popup through `Cancel` or sending the staged prompt into Codex, and visible `Double click` restoring the transcript-only view
 
 Coverage summary from the verified run:
 

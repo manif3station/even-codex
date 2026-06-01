@@ -8,7 +8,7 @@ use JSON::PP qw(encode_json);
 use Even::Codex::Server ();
 use Even::Codex::State ();
 
-our $VERSION = '0.27';
+our $VERSION = '0.28';
 
 sub new {
     my ( $class, %args ) = @_;

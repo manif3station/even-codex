@@ -1,5 +1,12 @@
 Revision history for even-codex
 
+0.28 2026-06-01
+
+    - rebuild the glasses page as a transcript region plus a bottom popup
+      prompt box so a glasses click no longer takes over the full screen
+    - keep the Codex transcript visible behind the popup and dismiss the popup
+      after `Cancel`, `Send`, or double-click close
+
 0.27 2026-06-01
 
     - keep the glasses transcript visible when the user presses `Click`
