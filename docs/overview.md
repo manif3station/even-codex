@@ -34,6 +34,7 @@ The packaged Even Hub app:
 - keeps the glasses transcript on the newest bottom lines by default instead of bouncing back to the top during background refresh
 - tails wrapped transcript rows so the newest physical glasses lines stay visible even when one message spans multiple rows
 - pauses live-follow when the operator scrolls up to inspect older transcript lines and resumes it only after they return to the bottom
+- steps transcript review by one rendered line per glasses `Up` or `Down` gesture instead of swapping to the top of a larger review buffer
 - renders the glasses view as a transcript region plus a bottom popup prompt box when click input is active
 - keeps the transcript as the default glasses surface
 - opens a bottom popup prompt box after an explicit glasses click while leaving the transcript visible behind it

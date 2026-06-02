@@ -65,6 +65,7 @@ type PluginState = {
   stagedQuery: string;
   lastSubmittedQuery: string;
   transcriptLiveFollow: boolean;
+  transcriptScrollOffset: number;
   voiceInputState: VoiceInputState;
   voiceSupported: boolean;
   voiceStatus: string;
@@ -197,6 +198,7 @@ async function boot() {
     if (sysEventType === OsEventTypeList.DOUBLE_CLICK_EVENT || isTextContainerDoubleClick) {
       state.glassesSurfaceMode = 'transcript';
       state.transcriptLiveFollow = true;
+      state.transcriptScrollOffset = 0;
       state.lastMessage = 'Glasses double press restored the live transcript view.';
       renderPhoneUi(state);
       await syncGlassesPage(bridge, state);
@@ -228,6 +230,7 @@ async function boot() {
           await syncGlassesPage(bridge, state);
         } else {
           state.transcriptLiveFollow = false;
+          state.transcriptScrollOffset += 1;
           state.lastMessage = 'Transcript review is pinned in place until you scroll back to the live bottom line.';
           renderPhoneUi(state);
           await syncGlassesPage(bridge, state, { forceTranscript: true });
@@ -242,8 +245,11 @@ async function boot() {
           renderPhoneUi(state);
           await syncGlassesPage(bridge, state);
         } else {
-          state.transcriptLiveFollow = true;
-          state.lastMessage = 'Transcript live-follow resumed at the newest bottom line.';
+          state.transcriptScrollOffset = Math.max(0, state.transcriptScrollOffset - 1);
+          state.transcriptLiveFollow = state.transcriptScrollOffset === 0;
+          state.lastMessage = state.transcriptLiveFollow
+            ? 'Transcript live-follow resumed at the newest bottom line.'
+            : 'Transcript review moved one line closer to the live bottom line.';
           renderPhoneUi(state);
           await syncGlassesPage(bridge, state, { forceTranscript: true });
         }
@@ -534,6 +540,7 @@ function createInitialState(config: StoredConfig): PluginState {
     stagedQuery: '',
     lastSubmittedQuery: '',
     transcriptLiveFollow: true,
+    transcriptScrollOffset: 0,
     voiceInputState: 'idle',
     voiceSupported: false,
     voiceStatus: 'Voice query capture has not been initialized yet.',
@@ -915,6 +922,7 @@ function buildTranscriptText(state: PluginState) {
   return buildTranscriptRenderLines(lines, {
     follow: state.transcriptLiveFollow,
     popup: state.glassesSurfaceMode === 'input',
+    scrollOffset: state.transcriptScrollOffset,
   }).join('\n');
 }
 

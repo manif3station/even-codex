@@ -42,6 +42,9 @@ like( $source, qr/OsEventTypeList\.SYSTEM_EXIT_EVENT/, 'Even Hub source handles 
 like( $source, qr/OsEventTypeList\.SCROLL_TOP_EVENT/, 'Even Hub source handles upward glasses navigation events' );
 like( $source, qr/OsEventTypeList\.SCROLL_BOTTOM_EVENT/, 'Even Hub source handles downward glasses navigation events' );
 like( $source, qr/transcriptLiveFollow/, 'Even Hub source tracks whether the glasses transcript is in live-follow mode' );
+like( $source, qr/transcriptScrollOffset/, 'Even Hub source tracks transcript review offset in wrapped lines' );
+like( $source, qr/transcriptScrollOffset \+= 1/, 'Even Hub source moves the transcript review upward by one line per upward gesture' );
+like( $source, qr/Math\.max\(0, state\.transcriptScrollOffset - 1\)/, 'Even Hub source moves transcript review downward one line at a time' );
 like( $source, qr/cycleInputAction/, 'Even Hub source cycles staged actions from glasses swipe input' );
 like( $source, qr/selectedInputAction = 'send'/, 'Even Hub source resets the glasses input view to Send by default' );
 like( $source, qr/GLASSES_POPUP_CONTAINER_ID/, 'Even Hub source defines a dedicated popup container id' );
@@ -77,6 +80,6 @@ my $transcript_helper = slurp('even-hub/src/transcript-view.js');
 like( $transcript_helper, qr/wrapTranscriptLine/, 'transcript helper exposes line wrapping' );
 like( $transcript_helper, qr/buildTranscriptRenderLines/, 'transcript helper exposes transcript render slicing' );
 like( $transcript_helper, qr/slice\(-visibleLines\)/, 'transcript helper keeps live-follow output pinned to the newest wrapped lines' );
-like( $transcript_helper, qr/slice\(-reviewLines\)/, 'transcript helper bounds manual-review output without rebuilding the entire raw transcript' );
+like( $transcript_helper, qr/scrollOffset/, 'transcript helper supports one-line transcript stepping during manual review' );
 
 done_testing;

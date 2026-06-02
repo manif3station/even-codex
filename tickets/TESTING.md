@@ -8,9 +8,9 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 
 ## Verified Result
 
-- verified on 2026-06-02 for release `0.31`
+- verified on 2026-06-02 for release `0.32`
 - all 24 test files passed
-- `Files=24, Tests=720`
+- `Files=24, Tests=725`
 - selected module statement coverage reached `100.0`
 - selected module subroutine coverage reached `100.0`
 - selected module branch coverage reached `100.0`
@@ -33,7 +33,7 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 - `t/21-even-hub-voice-playwright.t` also proved the empty standby recovery path where a second click closes the popup cleanly instead of surfacing a dead-end send error
 - `t/22-plugin-autorefresh-playwright.t` proved the phone-side plugin updates `Latest Prompt`, `Latest Progress`, and `Latest Reply` automatically from live session changes without a manual refresh click
 - `t/22-plugin-autorefresh-playwright.t` also proved stale progress text clears when the live session no longer reports progress
-- `t/23-even-hub-transcript-render.t` proved the wrapped-line transcript helper keeps live-follow output pinned to the newest visible tail while preserving deeper history for manual review mode
+- `t/23-even-hub-transcript-render.t` proved the wrapped-line transcript helper keeps live-follow output pinned to the newest visible tail and steps manual review by one rendered line at a time
 - `t/02-repo-files.t` now proves the README keeps the governed end-to-end flow section for the bridge, plugin, glasses transcript, popup interaction, and Codex return path
 - `t/18-simulator-codex-container.t` now proves the simulator publishes and launches the packaged native Codex binary path instead of the Node launcher wrapper path
 - a real smoke run built the simulator image, started the containerized desktop, confirmed the runtime process was running as uid `1000`, confirmed `/home/dashboard/.codex` was present from the host mount, returned `HTTP 200` from `http://127.0.0.1:15700/`, and proved through fresh screenshot review outside the Perl suite that the noVNC desktop showed:
@@ -64,6 +64,9 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
   - a fresh start with long wrapped transcript content showed the latest reply tail ending in `END-MARKER`
   - `Up` froze the glasses transcript while the phone-side plugin advanced to a replacement `NEXT-END` reply
   - `Down` resumed live-follow and the glasses caught up to that replacement `NEXT-END` tail
+- a follow-up simulator screenshot review outside the Perl suite proved the `Up`-jump regression fix on the actual rendered glasses UI:
+  - before `Up`, the glasses showed the wrapped `hotel` and `india ... END-LINE` tail
+  - after one `Up`, the glasses shifted to an earlier wrapped window instead of jumping to the top of the retained review buffer
 
 Coverage summary from the verified run:
 

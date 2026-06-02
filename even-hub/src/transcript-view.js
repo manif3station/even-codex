@@ -53,6 +53,7 @@ export function wrapTranscriptLine(line, width = DEFAULT_TRANSCRIPT_COLUMNS) {
 export function buildTranscriptRenderLines(sourceLines, options = {}) {
   const popup = options.popup === true;
   const follow = options.follow !== false;
+  const scrollOffset = Math.max(0, Number(options.scrollOffset || 0));
   const width = popup ? POPUP_TRANSCRIPT_COLUMNS : DEFAULT_TRANSCRIPT_COLUMNS;
   const visibleLines = popup ? POPUP_TRANSCRIPT_VISIBLE_LINES : DEFAULT_TRANSCRIPT_VISIBLE_LINES;
   const reviewLines = popup ? POPUP_TRANSCRIPT_REVIEW_LINES : DEFAULT_TRANSCRIPT_REVIEW_LINES;
@@ -65,7 +66,16 @@ export function buildTranscriptRenderLines(sourceLines, options = {}) {
     return ['Waiting for the first Codex transcript.'];
   }
 
-  return follow ? wrapped.slice(-visibleLines) : wrapped.slice(-reviewLines);
+  if (follow) {
+    return wrapped.slice(-visibleLines);
+  }
+
+  const reviewTail = wrapped.slice(-reviewLines);
+  const maxOffset = Math.max(0, reviewTail.length - visibleLines);
+  const clampedOffset = Math.min(scrollOffset, maxOffset);
+  const end = reviewTail.length - clampedOffset;
+  const start = Math.max(0, end - visibleLines);
+  return reviewTail.slice(start, end);
 }
 
 function splitLongWord(word, width) {

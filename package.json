@@ -1,7 +1,7 @@
 {
   "name": "even-codex",
   "private": true,
-  "version": "0.31.0",
+  "version": "0.32.0",
   "type": "module",
   "scripts": {
     "build:hub": "node scripts/build-even-hub.mjs && vite build",

@@ -156,6 +156,7 @@ For tickets that change the live query loop, extend the same review with:
 - the glasses view showing transcript by default, the staged input view only after `click`, action changes after `up` or `down`, and transcript restore after `double_click`
 - the glasses transcript staying on the live bottom lines by default, freezing in place during manual upward review, and resuming live-follow only after `down` returns to the bottom
 - long wrapped prompt, progress, and reply text being tailed by physical glasses rows so the newest rendered bottom line remains visible on first render
+- each transcript `up` or `down` gesture shifting that rendered review window by one line instead of snapping to the top of the retained review buffer
 - for glasses-interaction tickets, visible simulator button proof that the on-screen `Click`, `Up`, `Down`, and `Double click` controls change the glasses UI exactly as expected
 
 This interpretation rule is reusable and permanent for this skill. The image or
@@ -273,6 +274,7 @@ On the glasses page, the current controls are:
 
 - swipe up and swipe down to use native transcript scrolling
 - while the popup is closed, `up` freezes the transcript in manual review mode and `down` resumes live-follow once the operator returns to the newest bottom line
+- once review mode is active, repeated `up` and `down` gestures move the wrapped transcript one rendered line at a time
 - the same live-follow rule applies to wrapped long lines: the glasses stay on the newest rendered rows until `up` deliberately freezes review mode
 - click to open the bottom popup from the transcript, start the hybrid voice-input attempt when available, then click again to apply the selected staged action, close an empty standby popup, or dismiss `Cancel`
 - no native hold-to-dictate popup, because the current Even SDK docs do not document one; the shipped voice path stays hybrid and depends on the companion webview speech-recognition support
@@ -295,6 +297,7 @@ walks the operator through the full lifecycle:
 11. swipe up to inspect older lines and verify later background refreshes do not yank the view away
 12. swipe down back to the newest bottom line and verify live-follow resumes
 13. for long wrapped replies, confirm the newest marker at the tail of the reply is visible on first render, remains pinned during `up` freeze, and updates after `down` resume
+14. confirm the first `up` gesture moves the rendered transcript by one line instead of jumping to the top of the retained review buffer
 
 When voice recognition does not yield a staged draft, the next click closes the
 popup cleanly and records a recovery message instead of leaving the operator on

@@ -1,5 +1,16 @@
 Revision history for even-codex
 
+0.32 2026-06-02
+
+    - change transcript review on glasses to move by one rendered wrapped line
+      per `Up` or `Down` gesture instead of jumping to the top of a larger
+      review buffer on the first upward gesture
+    - keep live-follow frozen during background refresh while that stepped
+      review position is active, then resume the live tail only when the
+      review offset returns to zero
+    - add governed source and helper tests plus live simulator proof for the
+      one-line transcript stepping behavior
+
 0.31 2026-06-02
 
     - keep the glasses transcript anchored to the newest bottom lines by
