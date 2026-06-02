@@ -160,7 +160,10 @@ start_bridge() {
   nohup bash -lc "cd \"${repo_root}\" && exec \"${repo_root}/cli/start\"" >>"${bridge_log_file}" 2>&1 < /dev/null &
   local pid="$!"
   printf '%s' "${pid}" > "${bridge_pid_file}"
-  wait_for_port "${bridge_probe_host}" "${bridge_port}" "even-codex bridge"
+  if ! wait_for_port "${bridge_probe_host}" "${bridge_port}" "even-codex bridge"; then
+    stop_pid_file "${bridge_pid_file}" >/dev/null 2>&1 || true
+    return 1
+  fi
   printf '%s' "${pid}"
 }
 
@@ -188,7 +191,10 @@ start_app_server() {
   nohup bash -lc "${app_server_cmd}" >>"${app_log_file}" 2>&1 < /dev/null &
   local pid="$!"
   printf '%s' "${pid}" > "${app_pid_file}"
-  wait_for_port "${app_host}" "${app_port}" "Hub app server"
+  if ! wait_for_port "${app_host}" "${app_port}" "Hub app server"; then
+    stop_pid_file "${app_pid_file}" >/dev/null 2>&1 || true
+    return 1
+  fi
   printf '%s' "${pid}"
 }
 

@@ -29,7 +29,8 @@ The bundled plugin:
 - renders the paired workspace ref, Codex session id, host, port, latest prompt, latest progress text, and latest reply for the phone-hosted Even app flow
 - is mirrored by a DD-served plugin page at `/app/even-codex/plugin` that
   reuses the same pairings and Codex transcript logic through DD
-  `/ajax/even-codex/...` handlers and helper-session auth
+  `/ajax/even-codex/...` handlers and supports either helper-session auth or
+  DD API-key auth from runtime `config/api.json` layers
 
 The packaged Even Hub app:
 
@@ -38,6 +39,8 @@ The packaged Even Hub app:
 - creates the startup page on the glasses at launch
 - persists the bridge origin through SDK local storage
 - exposes a phone-side setup dashboard with connector profile management, session libraries, refresh, and pairing guidance
+- supports two governed DD HTTPS connector auth modes on that dashboard:
+  helper-session browser auth and runtime API-key auth
 - auto-refreshes the bridge transcript in the background so glasses and phone stay aligned with the current Codex turn
 - keeps the glasses transcript on the newest bottom lines by default instead of bouncing back to the top during background refresh
 - tails wrapped transcript rows so the newest physical glasses lines stay visible even when one message spans multiple rows
@@ -68,6 +71,8 @@ The submission layer now also ships with the repo:
 - a simulator image that includes the Codex CLI and reuses host Codex auth through `~/.codex`
 - a simulator image that resumes the paired session in a visible xterm through the packaged native Codex binary so the desktop runtime bypasses the Node launcher self-update branch
 - a host-UID default runtime model for the simulator container so mounted Codex auth is not rewritten by `root`
+- a disposable runtime DD `config/api.json` generator inside the simulator for
+  machine-auth proof without shipping a shared API secret in the repo
 - a one-command desktop E2E CLI that launches the bridge, app server, and simulator together
 - a skill-local release rule that keeps simulator screenshot interpretation outside the Perl `.t` suite and requires fresh human or LLM review
 - a release rule that requires the visible simulator control buttons to be verified on screen for tickets that change glasses interactions, instead of relying only on HTTP automation

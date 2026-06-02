@@ -91,6 +91,53 @@ https://192.168.1.20:7890/app/even-codex/plugin?workspace_ref=foobar
 The helper login page is served first. After login, the DD session cookie lets
 the Even plugin browser session call the `/ajax/even-codex/...` endpoints.
 
+## Use The DD API-Key Connector
+
+Do not put a shared API client into the skill repo. The governed connector key
+name is fixed to `even-codex-connector`, and `dashboard even-codex.start` now
+bootstraps that DD API client automatically through the DD-native command:
+
+```bash
+dashboard api add --key even-codex-connector --maybe-secret 0000 \
+  --route /ajax/even-codex/bootstrap \
+  --route /ajax/even-codex/health \
+  --route /ajax/even-codex/session \
+  --route /ajax/even-codex/prompt
+```
+
+If you still need to seed a disposable or operator-owned runtime DD API client
+by hand, the entry looks like:
+
+```json
+{
+  "even-codex-connector": {
+    "secret": "<sha256 of the raw secret>",
+    "ajax": [
+      "/ajax/even-codex/bootstrap",
+      "/ajax/even-codex/health",
+      "/ajax/even-codex/session",
+      "/ajax/even-codex/prompt"
+    ]
+  }
+}
+```
+
+Then save an Even plugin connector profile with:
+
+- origin: `https://192.168.1.20:7890/ajax/even-codex`
+- auth mode: `API Key`
+- API key: fixed to `even-codex-connector`
+- API secret: defaults to `0000` unless the operator rotates it later
+
+Helper-session auth and API-key auth both reuse the same DD HTTPS connector
+routes. Only API-key mode adds `X-DD-API-Key` and `X-DD-API-Secret`.
+
+The governed browser path now stays on the same DD HTTPS page for both helper
+and API-key mode. Helper login still gates the page itself, then the Even Hub
+client can switch that same DD-served page into `API Key` mode and send
+`X-DD-API-Key` plus `X-DD-API-Secret` on the governed `/ajax/even-codex/...`
+requests without leaving the DD origin.
+
 ## Build The Even Hub App
 
 Build the packaged `D2-Codex` app from the repo root:
@@ -188,6 +235,9 @@ Useful override environment variables for Docker mode:
 - `EVEN_CODEX_DOCKER_BIN`
 - `EVEN_CODEX_SIMULATOR_COMPOSE_FILE`
 - `EVEN_CODEX_SIMULATOR_ENV_FILE`
+- `EVEN_CODEX_SIMULATOR_CONNECTOR_MODE`
+- `EVEN_CODEX_SIMULATOR_API_KEY`
+- `EVEN_CODEX_SIMULATOR_API_SECRET`
 
 Docker mode proven outputs:
 
@@ -195,6 +245,7 @@ Docker mode proven outputs:
 - repeating `dashboard even-codex.simulator start` while the compose state exists returns `already-running`
 - `dashboard even-codex.simulator stop` tears the compose stack down and removes the generated env file
 - the live noVNC desktop can show a real Codex turn in the xterm window and the same prompt or reply on the Even plugin and glasses surfaces
+- when `EVEN_CODEX_SIMULATOR_CONNECTOR_MODE=api`, the simulator writes a disposable runtime `~/.developer-dashboard/config/api.json` inside the container from the provided or generated API credentials instead of relying on any repo-owned secret
 
 ## Live Visual Release Gate
 

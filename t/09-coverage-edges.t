@@ -26,6 +26,24 @@ sub capture_run {
     return ( $rc, $stdout, $stderr );
 }
 
+sub write_fake_dashboard_api {
+    my (%args) = @_;
+    my $bin_dir = $args{bin_dir};
+    my $script_path = File::Spec->catfile( $bin_dir, 'fake-dashboard-api' );
+    my $payload = $args{payload};
+    open my $fh, '>', $script_path or die "Unable to write $script_path: $!";
+    print {$fh} <<"SH";
+#!/usr/bin/env bash
+set -eu
+cat <<'JSON'
+$payload
+JSON
+SH
+    close $fh or die "Unable to close $script_path: $!";
+    chmod 0755, $script_path or die "Unable to chmod $script_path: $!";
+    return $script_path;
+}
+
 {
     my $home = tempdir( CLEANUP => 1 );
     local $ENV{HOME} = $home;
@@ -370,6 +388,12 @@ sub capture_run {
 {
     my $tmp = tempdir( CLEANUP => 1 );
     my $config_root = File::Spec->catdir( $tmp, 'config' );
+    my $bin_dir = File::Spec->catdir( $tmp, 'bin' );
+    make_path($bin_dir);
+    my $dashboard_bin = write_fake_dashboard_api(
+        bin_dir => $bin_dir,
+        payload => qq|{"action":"add","changed":1,"file":"@{[ File::Spec->catfile( $tmp, '.developer-dashboard', 'config', 'api.json' ) ]}","key":"even-codex-connector"}|,
+    );
     Even::Codex::State::save_pairing(
         env              => { EVEN_CODEX_CONFIG_ROOT => $config_root },
         workspace_ref    => 'ticket-only',
@@ -383,9 +407,11 @@ sub capture_run {
                 stdout_fh => $out_fh,
                 stderr_fh => $err_fh,
                 env       => {
+                    HOME                     => $tmp,
                     TICKET_REF               => 'ticket-only',
                     EVEN_CODEX_CONFIG_ROOT   => $config_root,
                     EVEN_CODEX_START_CAPTURE => 1,
+                    EVEN_CODEX_DASHBOARD_BIN => $dashboard_bin,
                 },
             );
             return $manager->main_start(undef);
@@ -403,6 +429,12 @@ sub capture_run {
 {
     my $tmp = tempdir( CLEANUP => 1 );
     my $config_root = File::Spec->catdir( $tmp, 'config' );
+    my $bin_dir = File::Spec->catdir( $tmp, 'bin' );
+    make_path($bin_dir);
+    my $dashboard_bin = write_fake_dashboard_api(
+        bin_dir => $bin_dir,
+        payload => qq|{"action":"add","changed":1,"file":"@{[ File::Spec->catfile( $tmp, '.developer-dashboard', 'config', 'api.json' ) ]}","key":"even-codex-connector"}|,
+    );
     Even::Codex::State::save_pairing(
         env              => { EVEN_CODEX_CONFIG_ROOT => $config_root },
         workspace_ref    => 'ticket-fallback',
@@ -416,10 +448,12 @@ sub capture_run {
                 stdout_fh => $out_fh,
                 stderr_fh => $err_fh,
                 env       => {
+                    HOME                     => $tmp,
                     WORKSPACE_REF            => q{},
                     TICKET_REF               => 'ticket-fallback',
                     EVEN_CODEX_CONFIG_ROOT   => $config_root,
                     EVEN_CODEX_START_CAPTURE => 1,
+                    EVEN_CODEX_DASHBOARD_BIN => $dashboard_bin,
                 },
             );
             return $manager->main_start();
@@ -539,6 +573,12 @@ sub capture_run {
 {
     my $tmp = tempdir( CLEANUP => 1 );
     my $config_root = File::Spec->catdir( $tmp, 'config' );
+    my $bin_dir = File::Spec->catdir( $tmp, 'bin' );
+    make_path($bin_dir);
+    my $dashboard_bin = write_fake_dashboard_api(
+        bin_dir => $bin_dir,
+        payload => qq|{"action":"add","changed":1,"file":"@{[ File::Spec->catfile( $tmp, '.developer-dashboard', 'config', 'api.json' ) ]}","key":"even-codex-connector"}|,
+    );
     Even::Codex::State::save_pairing(
         env              => { EVEN_CODEX_CONFIG_ROOT => $config_root },
         workspace_ref    => 'serve-live',
@@ -551,8 +591,10 @@ sub capture_run {
     if ( $pid == 0 ) {
         my $manager = Even::Codex::Manager->new(
             env => {
+                HOME                         => $tmp,
                 WORKSPACE_REF                 => 'serve-live',
                 EVEN_CODEX_CONFIG_ROOT        => $config_root,
+                EVEN_CODEX_DASHBOARD_BIN      => $dashboard_bin,
                 EVEN_CODEX_HOST               => '127.0.0.1',
                 EVEN_CODEX_ADVERTISE_HOST     => '127.0.0.1',
                 EVEN_CODEX_PORT               => $port,
@@ -574,6 +616,12 @@ sub capture_run {
 {
     my $tmp = tempdir( CLEANUP => 1 );
     my $config_root = File::Spec->catdir( $tmp, 'config' );
+    my $bin_dir = File::Spec->catdir( $tmp, 'bin' );
+    make_path($bin_dir);
+    my $dashboard_bin = write_fake_dashboard_api(
+        bin_dir => $bin_dir,
+        payload => qq|{"action":"add","changed":1,"file":"@{[ File::Spec->catfile( $tmp, '.developer-dashboard', 'config', 'api.json' ) ]}","key":"even-codex-connector"}|,
+    );
     Even::Codex::State::save_pairing(
         env              => { EVEN_CODEX_CONFIG_ROOT => $config_root },
         workspace_ref    => 'serve-term',
@@ -586,8 +634,10 @@ sub capture_run {
     if ( $pid == 0 ) {
         my $manager = Even::Codex::Manager->new(
             env => {
+                HOME                      => $tmp,
                 WORKSPACE_REF             => 'serve-term',
                 EVEN_CODEX_CONFIG_ROOT    => $config_root,
+                EVEN_CODEX_DASHBOARD_BIN  => $dashboard_bin,
                 EVEN_CODEX_HOST           => '127.0.0.1',
                 EVEN_CODEX_ADVERTISE_HOST => '127.0.0.1',
                 EVEN_CODEX_PORT           => $port,
@@ -607,6 +657,12 @@ sub capture_run {
 {
     my $tmp = tempdir( CLEANUP => 1 );
     my $config_root = File::Spec->catdir( $tmp, 'config' );
+    my $bin_dir = File::Spec->catdir( $tmp, 'bin' );
+    make_path($bin_dir);
+    my $dashboard_bin = write_fake_dashboard_api(
+        bin_dir => $bin_dir,
+        payload => qq|{"action":"add","changed":1,"file":"@{[ File::Spec->catfile( $tmp, '.developer-dashboard', 'config', 'api.json' ) ]}","key":"even-codex-connector"}|,
+    );
     Even::Codex::State::save_pairing(
         env              => { EVEN_CODEX_CONFIG_ROOT => $config_root },
         workspace_ref    => 'serve-term-undef',
@@ -619,8 +675,10 @@ sub capture_run {
     if ( $pid == 0 ) {
         my $manager = Even::Codex::Manager->new(
             env => {
+                HOME                      => $tmp,
                 WORKSPACE_REF             => 'serve-term-undef',
                 EVEN_CODEX_CONFIG_ROOT    => $config_root,
+                EVEN_CODEX_DASHBOARD_BIN  => $dashboard_bin,
                 EVEN_CODEX_HOST           => '127.0.0.1',
                 EVEN_CODEX_ADVERTISE_HOST => '127.0.0.1',
                 EVEN_CODEX_PORT           => $port,

@@ -79,6 +79,7 @@ my @paths = (
     'docs/changes/2026-06-02-voice-fallback-popup.md',
     'docs/changes/2026-06-02-compile-wrapper.md',
     'docs/changes/2026-06-02-dd-web-routes.md',
+    'docs/changes/2026-06-02-dd-runtime-api-auth.md',
     'tickets/SOW.md',
     'tickets/EPIC-315.md',
     'tickets/EPIC-322.md',
@@ -114,6 +115,9 @@ my @paths = (
     'tickets/DD-360.md',
     'tickets/DD-363.md',
     'tickets/DD-364.md',
+    'tickets/DD-365.md',
+    'tickets/DD-366.md',
+    'tickets/DD-367.md',
     'tickets/EPIC-343.md',
     'tickets/EPIC-334.md',
     'tickets/EPIC-356.md',
@@ -123,6 +127,7 @@ my @paths = (
     'tickets/EPIC-360.md',
     'tickets/EPIC-363.md',
     'tickets/EPIC-364.md',
+    'tickets/EPIC-365.md',
     'tickets/TESTING.md',
     't/12-even-hub-ux.t',
     't/13-even-hub-listing.t',
@@ -136,6 +141,8 @@ my @paths = (
     't/22-plugin-autorefresh-playwright.t',
     't/24-compile-cli.t',
     't/25-dd-web-routes.t',
+    't/26-even-hub-auth-playwright.t',
+    't/27-dd-api-auth.t',
 );
 
 for my $path (@paths) {

@@ -58,6 +58,8 @@ RUN npm install \
 RUN set -eux; \
     printf '%%sudo ALL=(ALL) NOPASSWD:ALL\n' >/etc/sudoers.d/even-codex; \
     chmod 0440 /etc/sudoers.d/even-codex; \
+    mkdir -p /tmp/.X11-unix; \
+    chmod 1777 /tmp/.X11-unix; \
     if ! getent group "${EVEN_CODEX_HOST_GID}" >/dev/null; then \
       groupadd --gid "${EVEN_CODEX_HOST_GID}" "${EVEN_CODEX_RUNTIME_USER}"; \
     fi; \

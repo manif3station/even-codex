@@ -23,9 +23,14 @@ like( $dockerfile, qr/\bxterm\b/, 'simulator Dockerfile installs xterm for the v
 like( $dockerfile, qr/\bscrot\b/, 'simulator Dockerfile installs a desktop screenshot tool for gated visual checks' );
 like( $dockerfile, qr/\bxdotool\b/, 'simulator Dockerfile installs xdotool for desktop-driven E2E automation' );
 like( $dockerfile, qr/\blibwebkit2gtk-4\.1-0\b/, 'simulator Dockerfile installs the Even simulator WebKit runtime' );
+like( $dockerfile, qr/mkdir -p \/tmp\/\.X11-unix; \\/, 'simulator Dockerfile precreates the X11 socket directory before dropping privileges' );
+like( $dockerfile, qr/chmod 1777 \/tmp\/\.X11-unix; \\/, 'simulator Dockerfile makes the X11 socket directory world-writable with the sticky bit for non-root Xvfb' );
 
 my $compose = slurp('docker-compose.simulator.yml');
 like( $compose, qr/args:\s+.*EVEN_CODEX_RUNTIME_USER.*EVEN_CODEX_HOST_UID.*EVEN_CODEX_HOST_GID/s, 'simulator compose passes runtime user and host ids into the image build' );
+like( $compose, qr/EVEN_CODEX_CONNECTOR_MODE:\s+\$\{EVEN_CODEX_CONNECTOR_MODE\}/, 'simulator compose passes the connector mode into the runtime container' );
+like( $compose, qr/EVEN_CODEX_CONNECTOR_API_KEY:\s+\$\{EVEN_CODEX_CONNECTOR_API_KEY\}/, 'simulator compose passes the fixed DD API key into the runtime container when API mode is selected' );
+like( $compose, qr/EVEN_CODEX_CONNECTOR_API_SECRET:\s+\$\{EVEN_CODEX_CONNECTOR_API_SECRET\}/, 'simulator compose passes the DD API secret into the runtime container when API mode is selected' );
 like( $compose, qr/\$\{HOME\}\/\.codex:\/home\/\$\{EVEN_CODEX_RUNTIME_USER\}\/\.codex/, 'simulator compose mounts the host Codex config into the non-root runtime home' );
 like( $compose, qr/\$\{EVEN_CODEX_WORKSPACE_PATH\}:\$\{EVEN_CODEX_WORKSPACE_PATH\}/, 'simulator compose mounts the active workspace path into the container' );
 

@@ -13,6 +13,7 @@ import {
 type InputAction = 'send' | 'retry' | 'cancel';
 type GlassesSurfaceMode = 'transcript' | 'input';
 type VoiceInputState = 'idle' | 'starting' | 'listening' | 'captured' | 'phone' | 'error';
+type ConnectorAuthMode = 'helper' | 'api';
 
 type SessionRecord = {
   id: string;
@@ -24,6 +25,9 @@ type ConnectorProfile = {
   id: string;
   name: string;
   origin: string;
+  authMode: ConnectorAuthMode;
+  apiKey: string;
+  apiSecret: string;
   activeSessionId: string;
   sessions: SessionRecord[];
   workspaceRef: string;
@@ -103,6 +107,10 @@ type TestWindow = Window &
     SpeechRecognition?: new () => SpeechRecognitionLike;
     __evenCodexWaitForBridge?: () => Promise<EvenCodexBridgeLike>;
     __evenCodexSpeechRecognitionFactory?: () => SpeechRecognitionLike;
+    __evenCodexDefaultConnectorBase?: string;
+    __evenCodexInitialConnectorAuthMode?: ConnectorAuthMode;
+    __evenCodexInitialConnectorApiKey?: string;
+    __evenCodexInitialConnectorApiSecret?: string;
   };
 
 type BootstrapPayload = {
@@ -141,6 +149,8 @@ type SessionPayload = {
 const CONFIG_STORAGE_KEY = 'd2_codex.config';
 const LEGACY_ORIGIN_STORAGE_KEY = 'd2_codex.bridge_origin';
 const DEFAULT_BRIDGE_ORIGIN = determineDefaultConnectorBase();
+const FIXED_CONNECTOR_API_KEY = 'even-codex-connector';
+const DEFAULT_CONNECTOR_API_SECRET = '0000';
 const AUTO_REFRESH_INTERVAL_MS = 3000;
 const GLASSES_TRANSCRIPT_CONTAINER_ID = 1;
 const GLASSES_TRANSCRIPT_CONTAINER_NAME = 'd2-codex-transcript';
@@ -165,7 +175,7 @@ void boot();
 
 async function boot() {
   const bridge = await loadBridge();
-  const config = await loadStoredConfig(bridge);
+  const config = applyWindowConnectorOverrides(await loadStoredConfig(bridge));
   const state = createInitialState(config);
   state.voiceSupported = speechRecognitionSupported();
   state.voiceStatus = state.voiceSupported
@@ -284,9 +294,13 @@ async function boot() {
       const formData = new FormData(form);
       const name = String(formData.get('connectorName') || '').trim();
       const origin = normalizeOrigin(String(formData.get('bridgeOrigin') || ''));
+      const authMode = normalizeConnectorAuthMode(formData.get('connectorAuthMode'));
+      const apiSecret = String(formData.get('connectorApiSecret') || '').trim();
       saveConnectorProfile(state, {
         name: name || deriveConnectorName(origin, state.config.connectors.length + 1),
         origin,
+        authMode,
+        apiSecret,
       });
       await persistConfig(bridge, state.config);
       state.lastMessage = `Saved connector ${getActiveConnector(state)?.name || origin}.`;
@@ -555,11 +569,28 @@ async function refreshBootstrap(
   const connector = getActiveConnector(state);
 
   try {
-    const [health, bootstrap, session] = await Promise.all([
-      fetchJson<HealthPayload>(`${connector.origin}/health`),
-      fetchJson<BootstrapPayload>(`${connector.origin}/bootstrap`),
-      fetchJson<SessionPayload>(`${connector.origin}/session`),
-    ]);
+    let health: HealthPayload = {
+      ok: true,
+      service: 'even-codex',
+      workspace_ref: connector.workspaceRef,
+      codex_session_id: connector.currentSessionId,
+      port: connector.port,
+    };
+    let bootstrap: BootstrapPayload;
+    let session: SessionPayload;
+
+    if (connectorUsesDashboardAjax(connector)) {
+      [bootstrap, session] = await Promise.all([
+        fetchJson<BootstrapPayload>(connector, `${connector.origin}/bootstrap`),
+        fetchJson<SessionPayload>(connector, `${connector.origin}/session`),
+      ]);
+    } else {
+      [health, bootstrap, session] = await Promise.all([
+        fetchJson<HealthPayload>(connector, `${connector.origin}/health`),
+        fetchJson<BootstrapPayload>(connector, `${connector.origin}/bootstrap`),
+        fetchJson<SessionPayload>(connector, `${connector.origin}/session`),
+      ]);
+    }
 
     state.bridgeStatus = health.ok ? 'connected' : 'offline';
     mergeBootstrapIntoConnector(connector, bootstrap);
@@ -604,6 +635,7 @@ function renderPhoneUi(state: PluginState) {
   const connector = getActiveConnector(state);
   const activeSession = getActiveSession(state);
   const sessionCount = connector.sessions.length;
+  const authModeLabel = connector.authMode === 'api' ? 'API Key' : 'Helper Session';
   const normalizedDraft = escapeHtml(state.draftQuery);
   const stagedQuery = escapeHtml(state.stagedQuery || 'No staged query.');
   const submittedQuery = escapeHtml(state.lastSubmittedQuery || 'No query sent from the plugin yet.');
@@ -640,6 +672,10 @@ function renderPhoneUi(state: PluginState) {
           <article class="panel">
             <p class="label">Lifecycle</p>
             <p class="value">${escapeHtml(state.lifecycle)}</p>
+          </article>
+          <article class="panel">
+            <p class="label">Connector Auth</p>
+            <p class="value">${escapeHtml(authModeLabel)}</p>
           </article>
         </section>
 
@@ -707,19 +743,30 @@ function renderPhoneUi(state: PluginState) {
             <li>Run <code>dashboard workspace foobar</code> in the project you want on glasses.</li>
             <li>Copy the Codex session id from <code>/status</code>.</li>
             <li>Save the pairing with <code>dashboard even-codex.start add &lt;codex-session-id&gt;</code>.</li>
+            <li>Use the DD helper login for browser-session mode, or add a runtime DD <code>config/api.json</code> client for API-key mode on the governed connector routes. Do not commit shared API secrets into the skill repo.</li>
             <li>Start the full local flow with <code>dashboard even-codex.simulator start</code> or start the bridge with <code>dashboard even-codex.start</code>.</li>
           </ol>
         </section>
 
         <section class="panel stack">
           <h2 class="section-title">Connector Profiles</h2>
-          <p class="copy">Save and switch between different local network DD connector origins from the phone plugin. Glasses stay on the active connector and only switch sessions.</p>
+          <p class="copy">Save and switch between different local network DD connector origins from the phone plugin. Each connector can use DD helper-session auth on the DD page or DD machine auth with <code>X-DD-API-Key</code> and <code>X-DD-API-Secret</code>. Glasses stay on the active connector and only switch sessions.</p>
           <form class="form" data-role="connector-form">
             <label class="label" for="connectorName">Connector Name</label>
             <input class="input" id="connectorName" name="connectorName" type="text" value="${escapeHtml(connector.name)}" />
             <label class="label" for="bridgeOrigin">Bridge Origin</label>
             <input class="input" id="bridgeOrigin" name="bridgeOrigin" type="url" value="${escapeHtml(connector.origin)}" />
             <p class="hint">Use the DD HTTPS ajax connector, for example <code>https://192.168.1.20:7890/ajax/even-codex</code>. The legacy bridge still listens on port 6789, but the governed DD connector path is HTTPS on port 7890.</p>
+            <label class="label" for="connectorAuthMode">Auth Mode</label>
+            <select class="input" id="connectorAuthMode" name="connectorAuthMode">
+              <option value="helper"${connector.authMode === 'helper' ? ' selected' : ''}>Helper Session</option>
+              <option value="api"${connector.authMode === 'api' ? ' selected' : ''}>API Key</option>
+            </select>
+            <p class="label">API Key</p>
+            <p class="value">${escapeHtml(FIXED_CONNECTOR_API_KEY)}</p>
+            <label class="label" for="connectorApiSecret">API Secret</label>
+            <input class="input" id="connectorApiSecret" name="connectorApiSecret" type="password" value="${escapeHtml(connector.apiSecret)}" placeholder="Default 0000 for DD API-key mode" />
+            <p class="hint">Helper mode relies on the DD login page and browser session. API-key mode always uses the fixed DD API key <code>${escapeHtml(FIXED_CONNECTOR_API_KEY)}</code> and the raw secret from this field. The bootstrap default is <code>${escapeHtml(DEFAULT_CONNECTOR_API_SECRET)}</code>.</p>
             <button class="button" type="button" data-role="save-connector-button">Save Connector</button>
           </form>
           <div class="profile-list">${renderConnectorProfiles(state)}</div>
@@ -787,6 +834,7 @@ function renderConnectorProfiles(state: PluginState) {
             <p class="label">${isActive ? 'Active Connector' : 'Saved Connector'}</p>
             <p class="value">${escapeHtml(connector.name)}</p>
             <p class="hint">${escapeHtml(connector.origin)}</p>
+            <p class="hint">Auth ${escapeHtml(connector.authMode === 'api' ? 'API Key' : 'Helper Session')}</p>
             <div class="button-row">
               <button class="button" type="button" data-role="activate-connector" data-connector-id="${escapeHtml(connector.id)}">Use Connector</button>
               <button class="button" type="button" data-role="remove-connector" data-connector-id="${escapeHtml(connector.id)}">Remove Connector</button>
@@ -1178,8 +1226,39 @@ async function stopVoiceInput(
   state.lastMessage = state.voiceStatus;
 }
 
-async function fetchJson<T>(url: string) {
-  const response = await fetch(url);
+function normalizeConnectorAuthMode(value: FormDataEntryValue | null | undefined): ConnectorAuthMode {
+  return value === 'api' ? 'api' : 'helper';
+}
+
+function connectorUsesApiAuth(connector: ConnectorProfile) {
+  return connector.authMode === 'api';
+}
+
+function connectorUsesDashboardAjax(connector: ConnectorProfile) {
+  return connector.origin.endsWith('/ajax/even-codex');
+}
+
+function connectorHeaders(
+  connector: ConnectorProfile,
+  headers: Record<string, string> = {},
+) {
+  const merged = { ...headers };
+  if (connectorUsesApiAuth(connector)) {
+    const apiKey = (connector.apiKey || FIXED_CONNECTOR_API_KEY).trim();
+    const apiSecret = connector.apiSecret.trim();
+    if (!apiKey || !apiSecret) {
+      throw new Error('DD API key and secret are required before using API-key connector mode.');
+    }
+    merged['X-DD-API-Key'] = apiKey;
+    merged['X-DD-API-Secret'] = apiSecret;
+  }
+  return merged;
+}
+
+async function fetchJson<T>(connector: ConnectorProfile, url: string) {
+  const response = await fetch(url, {
+    headers: connectorHeaders(connector),
+  });
   if (!response.ok) {
     throw new Error(`${url} returned ${response.status}`);
   }
@@ -1320,15 +1399,24 @@ function removeSessionFromActiveConnector(state: PluginState, sessionId: string)
   }
 }
 
-function saveConnectorProfile(state: PluginState, connectorInput: { name: string; origin: string }) {
+function saveConnectorProfile(
+  state: PluginState,
+  connectorInput: { name: string; origin: string; authMode: ConnectorAuthMode; apiSecret: string },
+) {
   const existing = state.config.connectors.find((connector) => connector.origin === connectorInput.origin);
   if (existing) {
     existing.name = connectorInput.name;
+    existing.authMode = connectorInput.authMode;
+    existing.apiKey = FIXED_CONNECTOR_API_KEY;
+    existing.apiSecret = connectorInput.apiSecret;
     state.config.activeConnectorId = existing.id;
     return;
   }
 
   const connector = createConnectorProfile(connectorInput.name, connectorInput.origin, state.config.connectors.length + 1);
+  connector.authMode = connectorInput.authMode;
+  connector.apiKey = FIXED_CONNECTOR_API_KEY;
+  connector.apiSecret = connectorInput.apiSecret || DEFAULT_CONNECTOR_API_SECRET;
   state.config.connectors.unshift(connector);
   state.config.activeConnectorId = connector.id;
 }
@@ -1353,10 +1441,10 @@ function mergeBootstrapIntoConnector(connector: ConnectorProfile, bootstrap: Boo
   connector.bindHost = bootstrap.bind_host;
   connector.advertisedHost = bootstrap.advertised_host;
   connector.port = bootstrap.port;
-  connector.healthUrl = `${connector.origin}/health`;
-  connector.bootstrapUrl = bootstrap.bootstrap_url;
-  connector.pluginUrl = bootstrap.plugin_url;
-  connector.promptUrl = bootstrap.prompt_url;
+  connector.healthUrl = resolveConnectorUrl(connector.origin, bootstrap.health_url, 'health');
+  connector.bootstrapUrl = resolveConnectorUrl(connector.origin, bootstrap.bootstrap_url, 'bootstrap');
+  connector.pluginUrl = resolveConnectorAssetUrl(connector.origin, bootstrap.plugin_url, connectorPluginUrl(connector.origin));
+  connector.promptUrl = resolveConnectorUrl(connector.origin, bootstrap.prompt_url, 'prompt');
   connector.lastSeenAt = createTimestamp();
   connector.lastAssistantProgressMessage =
     typeof bootstrap.last_assistant_progress_message === 'string'
@@ -1401,6 +1489,9 @@ function createConnectorProfile(name: string, origin: string, index: number): Co
     id: `connector-${Date.now()}-${index}`,
     name,
     origin: normalizedOrigin,
+    authMode: 'helper',
+    apiKey: FIXED_CONNECTOR_API_KEY,
+    apiSecret: DEFAULT_CONNECTOR_API_SECRET,
     activeSessionId: '',
     sessions: [],
     workspaceRef: 'Unpaired',
@@ -1443,6 +1534,63 @@ async function loadStoredConfig(bridge: Awaited<ReturnType<typeof waitForEvenApp
   return createDefaultConfig(legacyOrigin || DEFAULT_BRIDGE_ORIGIN);
 }
 
+function applyWindowConnectorOverrides(config: StoredConfig) {
+  const connector = config.connectors[0];
+  if (!connector) {
+    return config;
+  }
+
+  if (typeof window !== 'undefined' && window.location.pathname.startsWith('/app/even-codex/')) {
+    connector.origin = DEFAULT_BRIDGE_ORIGIN;
+    connector.healthUrl = connectorEndpoint(connector.origin, 'health');
+    connector.bootstrapUrl = connectorEndpoint(connector.origin, 'bootstrap');
+    connector.pluginUrl = connectorPluginUrl(connector.origin);
+    connector.promptUrl = connectorEndpoint(connector.origin, 'prompt');
+  }
+
+  const defaultBase = testWindow.__evenCodexDefaultConnectorBase;
+  if (typeof defaultBase === 'string' && defaultBase.trim() !== '') {
+    connector.origin = normalizeConnectorBase(defaultBase);
+    connector.healthUrl = connectorEndpoint(connector.origin, 'health');
+    connector.bootstrapUrl = connectorEndpoint(connector.origin, 'bootstrap');
+    connector.pluginUrl = connectorPluginUrl(connector.origin);
+    connector.promptUrl = connectorEndpoint(connector.origin, 'prompt');
+  }
+
+  const authMode = testWindow.__evenCodexInitialConnectorAuthMode;
+  if (authMode === 'api' || authMode === 'helper') {
+    connector.authMode = authMode;
+  }
+
+  connector.apiKey = FIXED_CONNECTOR_API_KEY;
+
+  if (typeof testWindow.__evenCodexInitialConnectorApiSecret === 'string') {
+    connector.apiSecret = testWindow.__evenCodexInitialConnectorApiSecret;
+  }
+
+  applyQueryConnectorOverrides(connector);
+
+  return config;
+}
+
+function applyQueryConnectorOverrides(connector: ConnectorProfile) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const connectorAuth = params.get('connector_auth');
+  const connectorApiSecret = params.get('connector_api_secret');
+
+  if (connectorAuth === 'api' || connectorAuth === 'helper') {
+    connector.authMode = connectorAuth;
+  }
+
+  if (typeof connectorApiSecret === 'string' && connectorApiSecret.trim() !== '') {
+    connector.apiSecret = connectorApiSecret.trim();
+  }
+}
+
 async function persistConfig(
   bridge: Awaited<ReturnType<typeof waitForEvenAppBridge>>,
   config: StoredConfig,
@@ -1460,6 +1608,12 @@ function normalizeStoredConfig(config: StoredConfig) {
         ),
         ...connector,
         origin: normalizeConnectorBase(connector.origin || DEFAULT_BRIDGE_ORIGIN),
+        authMode: connector.authMode === 'api' ? 'api' : 'helper',
+        apiKey: FIXED_CONNECTOR_API_KEY,
+        apiSecret:
+          typeof connector.apiSecret === 'string' && connector.apiSecret !== ''
+            ? connector.apiSecret
+            : DEFAULT_CONNECTOR_API_SECRET,
         sessions: Array.isArray(connector.sessions)
           ? connector.sessions.filter((session) => session && session.id).map((session) => ({
               id: session.id,
@@ -1514,6 +1668,28 @@ function connectorEndpoint(base: string, name: string) {
   return `${base}/${name}`;
 }
 
+function connectorOriginRoot(base: string) {
+  const parsed = new URL(base);
+  return parsed.origin;
+}
+
+function resolveConnectorUrl(base: string, value: string | undefined, endpoint: string) {
+  const fallback = connectorEndpoint(base, endpoint);
+  if (typeof value !== 'string' || value.trim() === '') {
+    return fallback;
+  }
+
+  return new URL(value, `${connectorOriginRoot(base)}/`).toString();
+}
+
+function resolveConnectorAssetUrl(base: string, value: string | undefined, fallback: string) {
+  if (typeof value !== 'string' || value.trim() === '') {
+    return fallback;
+  }
+
+  return new URL(value, `${connectorOriginRoot(base)}/`).toString();
+}
+
 function connectorPluginUrl(base: string) {
   if (base.endsWith('/ajax/even-codex')) {
     return `${base.slice(0, -'/ajax/even-codex'.length)}/app/even-codex/plugin`;
@@ -1549,9 +1725,9 @@ async function submitPrompt(
   const connector = getActiveConnector(state);
   const response = await fetch(connector.promptUrl, {
     method: 'POST',
-    headers: {
+    headers: connectorHeaders(connector, {
       'Content-Type': 'application/json',
-    },
+    }),
     body: JSON.stringify({ query }),
   });
 

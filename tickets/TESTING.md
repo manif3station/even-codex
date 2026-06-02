@@ -14,9 +14,9 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 
 ## Verified Result
 
-- verified on 2026-06-02 for release `0.45`
-- all 26 test files passed
-- `Files=26, Tests=891`
+- verified on 2026-06-02 for release `0.48`
+- all 28 test files passed
+- `Files=28, Tests=990`
 - selected module statement coverage reached `100.0`
 - selected module subroutine coverage reached `100.0`
 - selected module branch coverage reached `100.0`
@@ -27,11 +27,20 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
   - `POST /login` with the helper user returns `302` back to `/app/even-codex/plugin?workspace_ref=even-codex-proof`
   - replaying the issued `dashboard_session` cookie against `https://192.168.1.189:7890/ajax/even-codex/bootstrap?workspace_ref=even-codex-proof` returns the paired Codex session JSON with `plugin_url` set to `/app/even-codex/plugin` and the live DD smart ajax endpoints
 - a live simulator smoke outside the Perl suite rechecked the installed skill after the `0.35` reinstall and captured a fresh noVNC screenshot proving the Even simulator desktop was still up and rendering the D2-Codex plugin plus glasses display
-- a fresh live simulator proof outside the Perl suite reinstalled `even-codex 0.45`, launched `dashboard even-codex.simulator start`, and captured actual X-desktop screenshots proving that:
+- a fresh live simulator proof outside the Perl suite reinstalled `even-codex 0.48`, launched `dashboard even-codex.simulator start`, and captured actual X-desktop screenshots proving that:
   - the DD-served Even Hub page first opens on the helper login form over the simulator container's non-loopback HTTPS DD address
   - the simulator runtime is still non-root at `uid=1000(ubuntu) gid=1000(ubuntu) groups=1000(ubuntu),27(sudo)`
   - after helper login, the same DD page shows the `D2-Codex` plugin in `CONNECTED` state for workspace `skills`
   - the glasses surface remains live beside that authenticated plugin page with transcript text rendered from the paired Codex session
+- a fresh live machine-auth proof outside the Perl suite also verified that:
+  - the simulator writes a disposable runtime DD API client for `even-codex-connector`
+  - direct HTTPS calls with `X-DD-API-Key: even-codex-connector` and `X-DD-API-Secret: 0000` return valid `/ajax/even-codex/bootstrap`, `/session`, and `/health` payloads from the DD connector
+  - the DD-served Even Hub page now stays same-origin with the DD connector in API-key mode instead of switching to a separate standalone origin
+  - after helper login, that same DD-served page reaches `CONNECTED` state with the real paired Codex session id still visible on screen
+- the governed auth upgrade also requires:
+  - `t/26-even-hub-auth-playwright.t` proving helper mode keeps the DD browser-session path and API mode adds `X-DD-API-Key` plus `X-DD-API-Secret` only on `/ajax/even-codex/bootstrap`, `/session`, and `/prompt`
+  - `t/27-dd-api-auth.t` proving runtime DD `config/api.json` entries, not repo-owned secrets, can authorize the governed connector routes while helper-session auth still works on the same routes
+- a live simulator API-mode proof outside the Perl suite must use a disposable runtime DD API client inside the container or test home, never a committed skill-repo secret
 - `t/08-plugin-playwright.t` passed and proved the bundled Even plugin page renders paired session data from `/bootstrap`
 - `npm run build:hub` produced `dist/index.html`
 - `EVEN_CODEX_HUB_ORIGIN=https://192.168.1.20:7890/ajax/even-codex npm run pack:hub` produced `dist/d2-codex.ehpk`
@@ -53,6 +62,10 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 - `t/23-even-hub-transcript-render.t` proved the wrapped-line transcript helper keeps live-follow output pinned to the newest visible tail and steps manual review by one rendered line at a time
 - `t/02-repo-files.t` now proves the README keeps the governed end-to-end flow section for the bridge, plugin, glasses transcript, popup interaction, and Codex return path
 - `t/18-simulator-codex-container.t` now proves the simulator publishes and launches the packaged native Codex binary path instead of the Node launcher wrapper path
+- `t/06-start-cli.t` now proves `dashboard even-codex.start` bootstraps the fixed DD API client through `dashboard api add --key even-codex-connector --maybe-secret 0000 --route /ajax/even-codex/bootstrap --route /ajax/even-codex/health --route /ajax/even-codex/prompt --route /ajax/even-codex/session`
+- `t/15-e2e-cli.t` now proves the one-command E2E launcher preserves its JSON contract when bridge startup would otherwise fail
+- `t/18-simulator-codex-container.t` now proves the simulator image precreates `/tmp/.X11-unix` before dropping privileges and passes connector-mode env through the compose stack
+- `t/26-even-hub-auth-playwright.t` now proves relative DD smart-route bootstrap URLs resolve back onto the configured DD connector origin instead of leaking onto the standalone app origin
 - a real smoke run built the simulator image, started the containerized desktop, confirmed the runtime process was running as uid `1000`, confirmed `/home/dashboard/.codex` was present from the host mount, returned `HTTP 200` from `http://127.0.0.1:15700/`, and proved through fresh screenshot review outside the Perl suite that the noVNC desktop showed:
   - the Codex xterm with `hi` and `Hi`
   - the Even plugin with `Latest Prompt hi` and `Latest Reply Hi`

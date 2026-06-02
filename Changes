@@ -1,5 +1,49 @@
 Revision history for even-codex
 
+0.48 2026-06-02
+
+    - keep the DD-served Even Hub page on the DD HTTPS origin for API-key
+      simulator runs instead of switching to a separate standalone app origin,
+      so the browser stays same-origin with `/ajax/even-codex/...`
+    - seed the DD-served Even Hub page through governed query overrides for
+      `connector_auth` and `connector_api_secret` during simulator API-mode
+      startup
+    - reanchor the primary connector to the current DD smart-route page origin
+      on startup so stale saved simulator profiles cannot keep an old
+      standalone connector base and surface a false `OFFLINE` state after
+      helper login
+
+0.47 2026-06-02
+
+    - bootstrap the governed DD API client through `dashboard api add` on
+      every `dashboard even-codex.start` run, using the fixed key
+      `even-codex-connector`, the default raw secret `0000`, and the governed
+      `/ajax/even-codex/...` route list instead of mutating a shared skill-repo
+      `config/api.json`
+    - wire the simulator compose stack through the non-root X11 bootstrap and
+      the connector-mode environment so helper-mode and API-mode simulator runs
+      both use the intended container runtime settings
+    - harden the one-command E2E launcher so bridge or app startup failures
+      stop cleanly instead of leaking timeout text into the machine-readable
+      JSON payload
+    - resolve relative DD bootstrap route URLs back onto the configured DD
+      connector origin inside the Even Hub app so DD smart-route payloads stay
+      valid for standalone connector clients
+
+0.46 2026-06-02
+
+    - replace the abandoned skill-repo `config/api.json` placeholder idea with
+      the production-safe DD runtime machine-auth flow, so API clients are now
+      created only in disposable or operator-owned DD runtime layers such as
+      `~/.developer-dashboard/config/api.json`
+    - add governed helper-vs-API connector tests for the Even Hub app and DD
+      backend so `/ajax/even-codex/bootstrap`, `/session`, and `/prompt` can
+      be proven through helper-session auth or `X-DD-API-Key` plus
+      `X-DD-API-Secret` without shipping a shared secret in the skill repo
+    - teach the simulator API-mode path to generate a disposable runtime DD
+      `config/api.json` inside the container from provided or generated
+      credentials and inject the same credentials into the local Even Hub shell
+
 0.45 2026-06-02
 
     - align the packaged Even Hub app, compile wrapper, and governed docs to

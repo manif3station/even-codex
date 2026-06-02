@@ -2,7 +2,7 @@
   "package_id": "com.ddskill.d2codex",
   "edition": "202601",
   "name": "D2-Codex",
-  "version": "0.45.0",
+  "version": "0.48.0",
   "tagline": "Developer Dashboard Codex on Even glasses",
   "description": "Bring a live Developer Dashboard Codex workspace onto the Even app and glasses. D2-Codex promotes the broader Developer Dashboard ecosystem for daily AI-assisted operations, skill management, and UI creation around Codex sessions.",
   "changelog": "Moved the governed Even Hub connector defaults and simulator proof onto the DD HTTPS ajax routes, so the packaged plugin, helper-auth login, and DD-served connector all align to the same non-loopback HTTPS flow.",

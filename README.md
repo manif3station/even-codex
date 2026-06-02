@@ -219,6 +219,57 @@ https://192.168.1.20:7890/ajax/even-codex/prompt?workspace_ref=foobar
 That authenticated DD browser session is the intended middle layer between the
 machine-hosted Codex session and the phone-hosted Even plugin.
 
+## DD API-Key Flow
+
+`even-codex` also supports DD machine auth on the same HTTPS connector routes,
+but the API client must be created in a runtime DD layer, not committed into
+the shared skill repo.
+
+The governed connector key name is fixed to `even-codex-connector`, and
+`dashboard even-codex.start` now bootstraps that DD API client automatically
+through the DD-native command:
+
+```bash
+dashboard api add --key even-codex-connector --maybe-secret 0000 \
+  --route /ajax/even-codex/bootstrap \
+  --route /ajax/even-codex/health \
+  --route /ajax/even-codex/session \
+  --route /ajax/even-codex/prompt
+```
+
+If you still need to seed a disposable or operator-owned DD API client by hand,
+the runtime DD `~/.developer-dashboard/config/api.json` entry looks like:
+
+```json
+{
+  "even-codex-connector": {
+    "secret": "<sha256 of the raw secret>",
+    "ajax": [
+      "/ajax/even-codex/bootstrap",
+      "/ajax/even-codex/health",
+      "/ajax/even-codex/session",
+      "/ajax/even-codex/prompt"
+    ]
+  }
+}
+```
+
+Then save a connector in the Even plugin with:
+
+- origin: `https://192.168.1.20:7890/ajax/even-codex`
+- auth mode: `API Key`
+- API key: fixed to `even-codex-connector`
+- API secret: defaults to `0000` unless the operator rotates it later
+
+The packaged app and simulator send `X-DD-API-Key` plus `X-DD-API-Secret`
+only on those governed connector requests.
+
+The governed browser path is now the same DD HTTPS page for both auth modes.
+Helper login still gates the page itself, then the Even Hub client can switch
+that same DD-served page into `API Key` mode and send
+`X-DD-API-Key` plus `X-DD-API-Secret` on the governed `/ajax/even-codex/...`
+requests without leaving the DD origin.
+
 ## Even Hub Packaging
 
 Build the real Even Hub app:
@@ -252,6 +303,9 @@ The packaged app uses the Even Hub SDK, persists the chosen bridge origin throug
 The current packaged UX now includes:
 
 - a phone-side connection dashboard with setup checklist, connector profiles, session libraries, and refresh controls
+- two DD HTTPS connector auth modes on that dashboard:
+  - helper-session browser auth through the DD login page
+  - API-key auth with operator-owned runtime DD credentials
 - a glasses-side transcript window that streams recent prompt, progress, and reply text above a bottom popup prompt box
 - a governed live-follow transcript mode that keeps the latest bottom lines visible by default, pauses auto-follow during manual review, and resumes only after the operator returns to the bottom
 - a wrapped-line transcript tail that keeps the newest physical rows visible by default, even when the latest progress or reply text wraps across multiple glasses rows

@@ -13,6 +13,9 @@ export EVEN_CODEX_SIMULATOR_BIN=evenhub-simulator
 export EVEN_CODEX_SIMULATOR_PORT=9898
 export HOME="${EVEN_CODEX_RUNTIME_HOME:?}"
 export EVEN_CODEX_QUERY_LAUNCHER=/usr/local/bin/even-codex-query-launcher
+export EVEN_CODEX_CONNECTOR_MODE="${EVEN_CODEX_CONNECTOR_MODE:-helper}"
+export EVEN_CODEX_CONNECTOR_API_KEY="${EVEN_CODEX_CONNECTOR_API_KEY:-even-codex-connector}"
+export EVEN_CODEX_CONNECTOR_API_SECRET="${EVEN_CODEX_CONNECTOR_API_SECRET:-0000}"
 
 mkdir -p "${EVEN_CODEX_RUNTIME_ROOT}" /tmp/even-codex-simulator
 if [[ -d /opt/even-codex-host-auth/users ]]; then
@@ -33,7 +36,7 @@ cleanup() {
     codex_pid="$(cat "${EVEN_CODEX_RUNTIME_ROOT}/codex-xterm.pid" || true)"
     kill "${codex_pid:-0}" 2>/dev/null || true
   fi
-  kill "${simulator_pid:-0}" "${bridge_pid:-0}" "${codex_pid:-0}" "${dashboard_pid:-0}" "${novnc_pid:-0}" "${vnc_pid:-0}" "${openbox_pid:-0}" "${xvfb_pid:-0}" 2>/dev/null || true
+  kill "${simulator_pid:-0}" "${bridge_pid:-0}" "${codex_pid:-0}" "${dashboard_pid:-0}" "${app_pid:-0}" "${novnc_pid:-0}" "${vnc_pid:-0}" "${openbox_pid:-0}" "${xvfb_pid:-0}" 2>/dev/null || true
 }
 
 trap cleanup EXIT TERM INT
@@ -54,10 +57,29 @@ websockify --web=/usr/share/novnc/ 6080 localhost:5900 >/tmp/even-codex-simulato
 novnc_pid="$!"
 
 container_ip="$(hostname -I | awk '{print $1}')"
+
+if [[ "${EVEN_CODEX_CONNECTOR_MODE}" == "api" ]]; then
+  if [[ -z "${EVEN_CODEX_CONNECTOR_API_SECRET}" ]]; then
+    EVEN_CODEX_CONNECTOR_API_SECRET="0000"
+  fi
+  api_hash="$(printf '%s' "${EVEN_CODEX_CONNECTOR_API_SECRET}" | sha256sum | awk '{print $1}')"
+  mkdir -p "${EVEN_CODEX_RUNTIME_HOME}/.developer-dashboard/config"
+  cat > "${EVEN_CODEX_RUNTIME_HOME}/.developer-dashboard/config/api.json" <<JSON
+{
+  "${EVEN_CODEX_CONNECTOR_API_KEY}": {
+    "secret": "${api_hash}",
+    "ajax": [
+      "/ajax/even-codex/bootstrap",
+      "/ajax/even-codex/session",
+      "/ajax/even-codex/prompt"
+    ]
+  }
+}
+JSON
+fi
+
 dashboard serve --host "${container_ip}" --port 7890 --ssl --foreground >/tmp/even-codex-simulator/dashboard-serve.log 2>&1 &
 dashboard_pid="$!"
-
-export EVEN_CODEX_SIMULATOR_URL="https://${container_ip}:7890/app/even-codex/even-hub?workspace_ref=${WORKSPACE_REF}"
 
 cert_path="${EVEN_CODEX_RUNTIME_HOME}/.developer-dashboard/certs/server.crt"
 while [[ ! -f "${cert_path}" ]]; do
@@ -77,6 +99,12 @@ fi
 
 /usr/local/bin/even-codex-query-launcher "${EVEN_CODEX_CODEX_SESSION_ID}"
 codex_pid="$(cat "${EVEN_CODEX_RUNTIME_ROOT}/codex-xterm.pid")"
+
+if [[ "${EVEN_CODEX_CONNECTOR_MODE}" == "api" ]]; then
+  export EVEN_CODEX_SIMULATOR_URL="https://${container_ip}:7890/app/even-codex/even-hub?workspace_ref=${WORKSPACE_REF}&connector_auth=api&connector_api_secret=${EVEN_CODEX_CONNECTOR_API_SECRET}"
+else
+  export EVEN_CODEX_SIMULATOR_URL="https://${container_ip}:7890/app/even-codex/even-hub?workspace_ref=${WORKSPACE_REF}"
+fi
 
 evenhub-simulator "${EVEN_CODEX_SIMULATOR_URL}" --automation-port "${EVEN_CODEX_SIMULATOR_PORT}" >/tmp/even-codex-simulator/simulator.log 2>&1 &
 simulator_pid="$!"

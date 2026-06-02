@@ -33,6 +33,7 @@ Ship a governed `skills/even-codex` repository that starts from a stable product
    - install command
    - configuration storage
    - local audit and recovery tools
+   - DD HTTPS connector modes for helper-session and machine-auth access
 5. Relay and plugin integration boundary
    - bridge-facing contract for the external relay and Even plugin
    - LAN-only and public-hosted deployment support

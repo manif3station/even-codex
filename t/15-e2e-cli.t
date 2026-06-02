@@ -5,7 +5,7 @@ use File::Path qw(make_path);
 use File::Spec;
 use File::Temp qw(tempdir tempfile);
 use IO::Socket::INET;
-use JSON::PP qw(decode_json);
+use JSON::PP qw(decode_json encode_json);
 use Test::More;
 
 sub slurp {
@@ -27,6 +27,21 @@ sub run_start_add {
     my ( $env, $session_id ) = @_;
     local %ENV = ( %{$env}, PATH => $ENV{PATH}, HOME => $ENV{HOME} );
     return _run_shell_command( './cli/start', 'add', $session_id );
+}
+
+sub write_fake_dashboard {
+    my (%args) = @_;
+    my $script_path = $args{script_path};
+    my $json_payload = encode_json( $args{json_payload} );
+    open my $fh, '>', $script_path or die "Unable to write $script_path: $!";
+    print {$fh} <<"SH";
+#!/usr/bin/env bash
+set -eu
+printf '%s' ${\_shell_quote($json_payload)}
+SH
+    close $fh or die "Unable to close $script_path: $!";
+    chmod 0755, $script_path or die "Unable to chmod $script_path: $!";
+    return $script_path;
 }
 
 sub http_get {
@@ -96,6 +111,7 @@ sub _reserve_port {
     my $app_port = _reserve_port();
     my $sim_capture = File::Spec->catfile( $tmp, 'simulator-capture.txt' );
     my $app_capture = File::Spec->catfile( $tmp, 'app-server-capture.txt' );
+    my $dashboard_bin = File::Spec->catfile( $bin_dir, 'fake-dashboard-api' );
 
     my $index_html = File::Spec->catfile( $app_dir, 'index.html' );
     open my $index_fh, '>', $index_html or die $!;
@@ -155,6 +171,16 @@ SH
     close $sim_fh or die $!;
     chmod 0755, $simulator or die "Unable to chmod simulator stub: $!";
 
+    write_fake_dashboard(
+        script_path  => $dashboard_bin,
+        json_payload => {
+            action  => 'add',
+            changed => 0,
+            file    => File::Spec->catfile( $tmp, '.developer-dashboard', 'config', 'api.json' ),
+            key     => 'even-codex-connector',
+        },
+    );
+
     my %env = (
         WORKSPACE_REF                    => 'foobar',
         EVEN_CODEX_CONFIG_ROOT          => $config_root,
@@ -169,6 +195,7 @@ SH
         EVEN_CODEX_SIMULATOR_BIN        => $simulator,
         EVEN_CODEX_SIM_CAPTURE_FILE     => $sim_capture,
         EVEN_CODEX_SIMULATOR_PORT       => 9988,
+        EVEN_CODEX_DASHBOARD_BIN        => $dashboard_bin,
     );
 
     my ( $add_rc, $add_output ) = run_start_add( \%env, 'codex-session-901' );

@@ -34,6 +34,9 @@ workspace_path="${EVEN_CODEX_WORKSPACE_PATH:-$(pwd)}"
 runtime_user="${EVEN_CODEX_RUNTIME_USER:-dashboard}"
 host_uid="${EVEN_CODEX_HOST_UID:-$(id -u)}"
 host_gid="${EVEN_CODEX_HOST_GID:-$(id -g)}"
+connector_mode="${EVEN_CODEX_SIMULATOR_CONNECTOR_MODE:-helper}"
+connector_api_key="${EVEN_CODEX_SIMULATOR_API_KEY:-}"
+connector_api_secret="${EVEN_CODEX_SIMULATOR_API_SECRET:-}"
 
 mkdir -p "${local_root}" "${docker_root}"
 
@@ -192,6 +195,9 @@ EVEN_CODEX_DASHBOARD_PORT=${dashboard_port}
 EVEN_CODEX_BRIDGE_HOST_PORT=${bridge_port}
 EVEN_CODEX_APP_HOST_PORT=${app_port}
 EVEN_CODEX_AUTOMATION_HOST_PORT=${automation_host_port}
+EVEN_CODEX_CONNECTOR_MODE=${connector_mode}
+EVEN_CODEX_CONNECTOR_API_KEY=${connector_api_key}
+EVEN_CODEX_CONNECTOR_API_SECRET=${connector_api_secret}
 EOF
 }
 

@@ -79,6 +79,9 @@ SH
         EVEN_CODEX_SIMULATOR_NOVNC_PORT => 15700,
         EVEN_CODEX_SIMULATOR_VNC_PORT   => 15900,
         EVEN_CODEX_WORKSPACE_PATH       => '/tmp/foobar-workspace',
+        EVEN_CODEX_SIMULATOR_CONNECTOR_MODE => 'api',
+        EVEN_CODEX_SIMULATOR_API_KEY       => 'even-codex-connector',
+        EVEN_CODEX_SIMULATOR_API_SECRET    => 'simulator-secret',
     );
 
     my ( $add_rc, $add_output ) = run_start_add( \%env, 'codex-session-444' );
@@ -103,6 +106,9 @@ SH
     like( $env_file, qr/^EVEN_CODEX_NOVNC_PORT=15700$/m, 'env file carries the noVNC port' );
     like( $env_file, qr/^EVEN_CODEX_HOST_UID=\d+$/m, 'env file carries the host uid for the runtime user mapping' );
     like( $env_file, qr/^EVEN_CODEX_HOST_GID=\d+$/m, 'env file carries the host gid for the runtime user mapping' );
+    like( $env_file, qr/^EVEN_CODEX_CONNECTOR_MODE=api$/m, 'env file carries the simulator connector auth mode' );
+    like( $env_file, qr/^EVEN_CODEX_CONNECTOR_API_KEY=even-codex-connector$/m, 'env file carries the fixed simulator DD API key' );
+    like( $env_file, qr/^EVEN_CODEX_CONNECTOR_API_SECRET=simulator-secret$/m, 'env file carries the simulator DD API secret' );
 
     my $docker_commands = slurp($docker_capture);
     like( $docker_commands, qr/compose .*docker-compose\.simulator\.yml .* up -d --build/, 'start shells out to docker compose up with build' );

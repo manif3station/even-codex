@@ -20,6 +20,15 @@ like( $source, qr/Connection Checklist/, 'phone UI exposes a setup checklist hea
 like( $source, qr/Connector Profiles/, 'phone UI exposes connector management' );
 like( $source, qr/Session Library/, 'phone UI exposes saved session management' );
 like( $source, qr/Port 6789/, 'phone UI explains the default bridge port' );
+like( $source, qr/Connector Auth/, 'phone UI exposes the active connector auth summary' );
+like( $source, qr/Auth Mode/, 'phone UI exposes the connector auth-mode selector' );
+like( $source, qr/API Key/, 'phone UI exposes the fixed DD API key label' );
+like( $source, qr/even-codex-connector/, 'phone UI shows the fixed DD API key name' );
+like( $source, qr/API Secret/, 'phone UI exposes the DD API secret field' );
+like( $source, qr/X-DD-API-Key/, 'phone UI explains the DD API key header path' );
+like( $source, qr/X-DD-API-Secret/, 'phone UI explains the DD API secret header path' );
+like( $source, qr/DEFAULT_CONNECTOR_API_SECRET/, 'phone UI source carries the default DD API secret constant through the fixed-key connector flow' );
+like( $source, qr/Helper Session/, 'phone UI exposes the helper-session connector mode' );
 like( $source, qr/Latest Prompt/, 'phone UI exposes the latest prompt transcript panel' );
 like( $source, qr/Latest Reply/, 'phone UI exposes the latest reply transcript panel' );
 like( $source, qr/Latest Progress/, 'phone UI exposes the latest assistant progress transcript panel' );
@@ -55,6 +64,7 @@ like( $source, qr/Click opens the staged query popup over the transcript and sta
 like( $source, qr/Recognised speech is mirrored into the popup draft/, 'phone UI explains that recognised speech flows back into the popup draft' );
 like( $source, qr/Double-click closes the popup and returns to the live transcript/, 'phone UI explains double-click popup restore behavior' );
 like( $source, qr/hybrid glasses-plus-webview implementation/, 'phone UI explains the hybrid voice-input limitation clearly' );
+like( $source, qr/DD helper login.*browser session.*API-key mode always uses the fixed DD API key/s, 'phone UI explains the governed helper and fixed-key API auth setups clearly' );
 like( $source, qr/Click again to close or speak again/, 'source surfaces a standby-close recovery message for empty voice captures' );
 like( $source, qr/Popup closed with no staged query/, 'source surfaces the close-on-empty-popup behavior clearly' );
 like( $source, qr/Prompt /, 'glasses transcript includes prompt lines' );

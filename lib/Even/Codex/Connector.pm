@@ -9,7 +9,7 @@ use Even::Codex::Sender ();
 use Even::Codex::State ();
 use Even::Codex::Transcript ();
 
-our $VERSION = '0.45';
+our $VERSION = '0.48';
 
 sub request_params_from_env {
     my (%args) = @_;
