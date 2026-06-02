@@ -1,0 +1,19 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+
+use FindBin qw($Bin);
+use lib "$Bin/../../lib";
+
+use JSON::PP qw(encode_json);
+
+use Even::Codex::Connector ();
+
+my %params = Even::Codex::Connector::request_params_from_env();
+print encode_json(
+    Even::Codex::Connector::health_payload(
+        env        => \%ENV,
+        params     => \%params,
+        route_base => '/even-codex',
+    )
+) . "\n";

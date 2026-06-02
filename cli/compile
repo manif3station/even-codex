@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "${script_dir}/.." && pwd)"
+origin="${1:-${EVEN_CODEX_HUB_ORIGIN:-https://192.168.1.20:7890/ajax/even-codex}}"
+artifact_path="${repo_root}/dist/d2-codex.ehpk"
+generated_manifest="${repo_root}/.even-hub-build/app.json"
+install_status="reused"
+node_bin="${EVEN_CODEX_NODE_BIN:-node}"
+repo_vite="${repo_root}/node_modules/vite/bin/vite.js"
+repo_evenhub="${repo_root}/node_modules/@evenrealities/evenhub-cli/main.js"
+home_vite="${HOME}/node_modules/vite/bin/vite.js"
+home_evenhub="${HOME}/node_modules/@evenrealities/evenhub-cli/main.js"
+vite_entry=""
+evenhub_entry=""
+
+json_escape() {
+  perl -MJSON::PP=encode_json -e 'local $/; print encode_json(scalar <STDIN>)'
+}
+
+print_json() {
+  local status_value="$1"
+
+  printf '{'
+  printf '"action":"compile",'
+  printf '"status":"%s",' "${status_value}"
+  printf '"origin":%s,' "$(printf '%s' "${origin}" | json_escape)"
+  printf '"artifact_path":%s,' "$(printf '%s' "${artifact_path}" | json_escape)"
+  printf '"generated_manifest":%s,' "$(printf '%s' "${generated_manifest}" | json_escape)"
+  printf '"install_status":"%s"' "${install_status}"
+  printf '}\n'
+}
+
+usage() {
+  printf 'Usage: dashboard even-codex.compile [bridge-origin]\n' >&2
+}
+
+if [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]]; then
+  usage
+  exit 0
+fi
+
+if [[ "$#" -gt 1 ]]; then
+  usage
+  exit 2
+fi
+
+cd "${repo_root}"
+
+if [[ -f "${repo_vite}" && -f "${repo_evenhub}" ]]; then
+  vite_entry="${repo_vite}"
+  evenhub_entry="${repo_evenhub}"
+elif [[ -f "${home_vite}" && -f "${home_evenhub}" ]]; then
+  install_status="dashboard-home"
+  vite_entry="${home_vite}"
+  evenhub_entry="${home_evenhub}"
+else
+  install_status="installed"
+  npm ci >/dev/null
+  vite_entry="${repo_vite}"
+  evenhub_entry="${repo_evenhub}"
+fi
+
+EVEN_CODEX_HUB_ORIGIN="${origin}" "${node_bin}" "${repo_root}/scripts/build-even-hub.mjs" >/dev/null
+EVEN_CODEX_HUB_ORIGIN="${origin}" "${node_bin}" "${vite_entry}" build >/dev/null
+EVEN_CODEX_HUB_ORIGIN="${origin}" "${node_bin}" "${evenhub_entry}" pack .even-hub-build/app.json dist -o dist/d2-codex.ehpk >/dev/null
+print_json "compiled"

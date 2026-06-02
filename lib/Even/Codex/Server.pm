@@ -6,11 +6,11 @@ use warnings;
 use IO::Socket::INET;
 use JSON::PP qw(decode_json encode_json);
 
+use Even::Codex::Connector ();
 use Even::Codex::Plugin ();
 use Even::Codex::Sender ();
-use Even::Codex::Transcript ();
 
-our $VERSION = '0.32';
+our $VERSION = '0.45';
 
 sub new {
     my ( $class, %args ) = @_;
@@ -47,36 +47,30 @@ sub new {
 
 sub bootstrap_payload {
     my ($self) = @_;
-    my $session = $self->session_payload;
-    return {
-        ok               => 1,
+    my $payload = Even::Codex::Connector::bootstrap_payload(
+        env              => $self->{env},
         workspace_ref    => $self->{workspace_ref},
         codex_session_id => $self->{codex_session_id},
+        base_url         => $self->base_url,
         bind_host        => $self->{host},
         advertised_host  => $self->{advertised_host},
-        port             => 0 + $self->{port},
-        health_url       => $self->base_url . '/health',
-        bootstrap_url    => $self->base_url . '/bootstrap',
-        plugin_url       => $self->base_url . '/plugin/',
-        session_url      => $self->base_url . '/session',
-        prompt_url       => $self->base_url . '/prompt',
-        last_user_message      => $session->{last_user_message},
-        last_assistant_progress_message => $session->{last_assistant_progress_message},
-        last_assistant_message => $session->{last_assistant_message},
-        recent_turns           => $session->{recent_turns},
-    };
+        port             => $self->{port},
+    );
+    $payload->{plugin_url} =~ s{(?<!/)\z}{/};
+    return $payload;
 }
 
 sub health_payload {
     my ($self) = @_;
-    my $bootstrap = $self->bootstrap_payload;
-    return {
-        ok               => 1,
-        service          => 'even-codex',
-        workspace_ref    => $bootstrap->{workspace_ref},
-        codex_session_id => $bootstrap->{codex_session_id},
-        port             => $bootstrap->{port},
-    };
+    return Even::Codex::Connector::health_payload(
+        env             => $self->{env},
+        workspace_ref   => $self->{workspace_ref},
+        codex_session_id => $self->{codex_session_id},
+        base_url        => $self->base_url,
+        bind_host       => $self->{host},
+        advertised_host => $self->{advertised_host},
+        port            => $self->{port},
+    );
 }
 
 sub base_url {
@@ -86,9 +80,10 @@ sub base_url {
 
 sub session_payload {
     my ($self) = @_;
-    return Even::Codex::Transcript::session_snapshot(
-        env        => $self->{env},
-        session_id => $self->{codex_session_id},
+    return Even::Codex::Connector::session_payload(
+        env           => $self->{env},
+        workspace_ref => $self->{workspace_ref},
+        codex_session_id => $self->{codex_session_id},
     );
 }
 
@@ -97,22 +92,19 @@ sub prompt_payload {
     my $query = $args{query};
     die "Query is required\n" if !defined $query || $query eq q{};
 
-    my $submission = $self->{sender}->submit_prompt(
-        session_id => $self->{codex_session_id},
-        prompt     => $query,
-    );
-
-    return {
-        ok               => 1,
+    return Even::Codex::Connector::prompt_payload(
+        env              => $self->{env},
+        sender           => $self->{sender},
+        workspace_ref    => $self->{workspace_ref},
         codex_session_id => $self->{codex_session_id},
-        queued_query     => $query,
-        tty              => $submission->{tty},
-    };
+        query            => $query,
+    );
 }
 
 sub serve {
     my ( $self, %args ) = @_;
-    my $max_requests = $args{max_requests} || 0;
+    my $max_requests = $args{max_requests};
+    $max_requests = 0 if !defined $max_requests;
     my $handled = 0;
 
     my $server = IO::Socket::INET->new(
@@ -187,8 +179,8 @@ sub _handle_client {
 sub _response_for_request {
     my ( $self, $method, $path, $body ) = @_;
 
-    if ( $method eq 'OPTIONS' && $path eq '/prompt' ) {
-        return ( 204, 'text/plain; charset=utf-8', q{} );
+    if ( $method eq 'OPTIONS' ) {
+        return ( 204, 'text/plain; charset=utf-8', q{} ) if $path eq '/prompt';
     }
 
     if ( $method eq 'POST' && $path eq '/prompt' ) {

@@ -199,14 +199,28 @@ docker_compose() {
   "${docker_bin}" compose -f "${docker_compose_file}" --env-file "${docker_env_file}" -p "${docker_project}" "$@"
 }
 
+docker_stack_running() {
+  [[ -f "${docker_env_file}" ]] || return 1
+  local output
+  output="$(docker_compose ps -q 2>/dev/null || true)"
+  [[ -n "${output}" ]]
+}
+
+clear_docker_state() {
+  rm -f "${docker_env_file}" "${docker_state_file}"
+}
+
 start_docker_simulator() {
   local workspace_ref session_id
   workspace_ref="$(resolve_workspace_ref)"
   session_id="$(resolve_paired_session "${workspace_ref}")"
 
   if [[ -f "${docker_state_file}" ]]; then
-    print_docker_json "start" "already-running" "${docker_env_file}" "${docker_compose_file}" "${docker_dockerfile}" "${workspace_ref}" "${session_id}"
-    return 0
+    if docker_stack_running; then
+      print_docker_json "start" "already-running" "${docker_env_file}" "${docker_compose_file}" "${docker_dockerfile}" "${workspace_ref}" "${session_id}"
+      return 0
+    fi
+    clear_docker_state
   fi
 
   write_docker_env_file "${workspace_ref}" "${session_id}"
@@ -224,13 +238,14 @@ stop_docker_simulator() {
   workspace_ref="${WORKSPACE_REF:-${TICKET_REF:-unknown}}"
   session_id="unknown"
 
-  if [[ -f "${docker_env_file}" ]]; then
+  if docker_stack_running; then
     docker_compose down >/dev/null || true
-    rm -f "${docker_env_file}" "${docker_state_file}"
+    clear_docker_state
     print_docker_json "stop" "stopped" "${docker_env_file}" "${docker_compose_file}" "${docker_dockerfile}" "${workspace_ref}" "${session_id}"
     return 0
   fi
 
+  clear_docker_state
   print_docker_json "stop" "not-running" "${docker_env_file}" "${docker_compose_file}" "${docker_dockerfile}" "${workspace_ref}" "${session_id}"
 }
 

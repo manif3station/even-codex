@@ -55,6 +55,14 @@ sub _shell_quote {
 #!/usr/bin/env bash
 set -eu
 printf '%s\n' "$*" >> "$EVEN_CODEX_DOCKER_CAPTURE_FILE"
+if [ "${1:-}" = "compose" ] && [ "${2:-}" = "-f" ]; then
+  for arg in "$@"; do
+    if [ "$arg" = "ps" ] && [ -f "$EVEN_CODEX_SIMULATOR_ENV_FILE" ]; then
+      printf 'even-codex-simulator-simulator-1\n'
+      exit 0
+    fi
+  done
+fi
 exit 0
 SH
     close $docker_fh or die $!;
@@ -67,6 +75,7 @@ SH
         EVEN_CODEX_DOCKER_BIN           => $docker_stub,
         EVEN_CODEX_DOCKER_CAPTURE_FILE  => $docker_capture,
         EVEN_CODEX_SIMULATOR_MODE       => 'docker',
+        EVEN_CODEX_SIMULATOR_ENV_FILE   => File::Spec->catfile( $runtime_root, 'simulator-docker', 'simulator.env' ),
         EVEN_CODEX_SIMULATOR_NOVNC_PORT => 15700,
         EVEN_CODEX_SIMULATOR_VNC_PORT   => 15900,
         EVEN_CODEX_WORKSPACE_PATH       => '/tmp/foobar-workspace',
@@ -112,6 +121,64 @@ SH
 
     $docker_commands = slurp($docker_capture);
     like( $docker_commands, qr/compose .*docker-compose\.simulator\.yml .* down/, 'stop shells out to docker compose down' );
+}
+
+{
+    my $tmp = tempdir( CLEANUP => 1 );
+    my $config_root = File::Spec->catdir( $tmp, 'config' );
+    my $runtime_root = File::Spec->catdir( $tmp, 'runtime' );
+    my $bin_dir = File::Spec->catdir( $tmp, 'bin' );
+    make_path($bin_dir);
+
+    my $docker_capture = File::Spec->catfile( $tmp, 'docker-capture.txt' );
+    my $docker_stub = File::Spec->catfile( $bin_dir, 'docker' );
+    open my $docker_fh, '>', $docker_stub or die $!;
+    print {$docker_fh} <<'SH';
+#!/usr/bin/env bash
+set -eu
+printf '%s\n' "$*" >> "$EVEN_CODEX_DOCKER_CAPTURE_FILE"
+if [ "${1:-}" = "compose" ] && [ "${2:-}" = "-f" ]; then
+  for arg in "$@"; do
+    if [ "$arg" = "ps" ]; then
+      exit 0
+    fi
+  done
+fi
+exit 0
+SH
+    close $docker_fh or die $!;
+    chmod 0755, $docker_stub or die "Unable to chmod docker stub: $!";
+
+    my %env = (
+        WORKSPACE_REF                    => 'foobar',
+        EVEN_CODEX_CONFIG_ROOT          => $config_root,
+        EVEN_CODEX_RUNTIME_ROOT         => $runtime_root,
+        EVEN_CODEX_DOCKER_BIN           => $docker_stub,
+        EVEN_CODEX_DOCKER_CAPTURE_FILE  => $docker_capture,
+        EVEN_CODEX_SIMULATOR_MODE       => 'docker',
+        EVEN_CODEX_SIMULATOR_ENV_FILE   => File::Spec->catfile( $runtime_root, 'simulator-docker', 'simulator.env' ),
+        EVEN_CODEX_SIMULATOR_NOVNC_PORT => 15700,
+        EVEN_CODEX_SIMULATOR_VNC_PORT   => 15900,
+        EVEN_CODEX_WORKSPACE_PATH       => '/tmp/foobar-workspace',
+    );
+
+    my ( $add_rc, $add_output ) = run_start_add( \%env, 'codex-session-445' );
+    is( $add_rc, 0, "pairing command exits cleanly for stale-state recovery\n$add_output" );
+
+    my $docker_root = File::Spec->catdir( $runtime_root, 'simulator-docker' );
+    make_path($docker_root);
+    my $state_file = File::Spec->catfile( $docker_root, 'state.json' );
+    open my $state_fh, '>', $state_file or die $!;
+    print {$state_fh} qq|{"project_name":"even-codex-simulator"}\n|;
+    close $state_fh or die $!;
+
+    my ( $start_rc, $start_output ) = run_cli( \%env, 'start' );
+    is( $start_rc, 0, "docker simulator start recovers from stale state files\n$start_output" );
+    my $start_payload = decode_json($start_output);
+    is( $start_payload->{status}, 'started', 'stale simulator state is cleared instead of reporting already-running' );
+
+    my $docker_commands = slurp($docker_capture);
+    like( $docker_commands, qr/compose .*docker-compose\.simulator\.yml .* up -d --build/, 'stale-state recovery starts a fresh compose stack after clearing dead state' );
 }
 
 done_testing;

@@ -1,0 +1,25 @@
+{
+  "/even-codex/plugin": "/app/plugin",
+  "/even-codex/bootstrap": {
+    "to": "/ajax/bootstrap",
+    "type": "json"
+  },
+  "/even-codex/health": {
+    "to": "/ajax/health",
+    "type": "json"
+  },
+  "/even-codex/session": {
+    "to": "/ajax/session",
+    "type": "json"
+  },
+  "/even-codex/prompt": {
+    "to": "/ajax/prompt",
+    "type": "json"
+  },
+  "/even-codex/plugin.js": "/js/dd-plugin.js",
+  "/even-codex/plugin.css": "/css/dd-plugin.css",
+  "/even-codex/manifest.json": {
+    "to": "/others/dd-plugin-manifest.json",
+    "type": "application/json; charset=utf-8"
+  }
+}

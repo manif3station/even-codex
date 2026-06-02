@@ -1,0 +1,7 @@
+TITLE: D2-Codex Even Hub
+:--------------------------------------------------------------------------------:
+BOOKMARK: even-hub
+:--------------------------------------------------------------------------------:
+HTML: <link rel="stylesheet" href="/css/even-codex/even-hub-app.css">
+<main id="app"></main>
+<script type="module" src="/js/even-codex/even-hub-app.js"></script>

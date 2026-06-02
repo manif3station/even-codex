@@ -14,6 +14,11 @@ The connector runtime:
 - resolves that pairing from the current `WORKSPACE_REF` or `TICKET_REF`
 - starts a local HTTP bridge on `0.0.0.0:6789` by default
 - exposes `/health`, `/bootstrap`, `/session`, `/prompt`, and `/plugin/`
+- now also exposes a DD-native connector surface through the native DD smart
+  routes under `/app/even-codex/...`, `/ajax/even-codex/...`,
+  `/js/even-codex/...`, and `/css/even-codex/...`
+  with the governed Even-plugin path using DD HTTPS instead of the legacy
+  direct bridge origin by default
 
 The bundled plugin:
 
@@ -22,6 +27,9 @@ The bundled plugin:
 - fetches the live transcript payload from `/session`
 - submits staged prompts through `/prompt`
 - renders the paired workspace ref, Codex session id, host, port, latest prompt, latest progress text, and latest reply for the phone-hosted Even app flow
+- is mirrored by a DD-served plugin page at `/app/even-codex/plugin` that
+  reuses the same pairings and Codex transcript logic through DD
+  `/ajax/even-codex/...` handlers and helper-session auth
 
 The packaged Even Hub app:
 
@@ -47,6 +55,8 @@ The packaged Even Hub app:
 - shows assistant progress text during live Codex work in the same transcript stream as prompt and reply text
 - records that the current Even docs do not document a native hold-to-dictate popup flow, so the shipped voice-input path is a hybrid glasses-plus-webview implementation
 - packages through `evenhub pack` into `dist/d2-codex.ehpk`
+- exposes `dashboard even-codex.compile` as the governed wrapper around that
+  packaging flow so operators do not need a global `evenhub` install
 
 The submission layer now also ships with the repo:
 

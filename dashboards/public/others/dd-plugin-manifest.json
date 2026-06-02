@@ -1,0 +1,7 @@
+{
+  "id": "even-codex-dd-plugin",
+  "name": "D2-Codex DD",
+  "version": "0.45",
+  "start_url": "/app/even-codex/plugin",
+  "bootstrap_path": "/ajax/even-codex/bootstrap"
+}

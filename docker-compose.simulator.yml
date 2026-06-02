@@ -7,6 +7,8 @@ services:
         EVEN_CODEX_RUNTIME_USER: ${EVEN_CODEX_RUNTIME_USER}
         EVEN_CODEX_HOST_UID: ${EVEN_CODEX_HOST_UID}
         EVEN_CODEX_HOST_GID: ${EVEN_CODEX_HOST_GID}
+    group_add:
+      - "27"
     environment:
       EVEN_CODEX_WORKSPACE_REF: ${EVEN_CODEX_WORKSPACE_REF}
       EVEN_CODEX_CODEX_SESSION_ID: ${EVEN_CODEX_CODEX_SESSION_ID}
@@ -27,4 +29,5 @@ services:
       - "${EVEN_CODEX_AUTOMATION_HOST_PORT}:9898"
     volumes:
       - "${HOME}/.codex:/home/${EVEN_CODEX_RUNTIME_USER}/.codex"
+      - "${HOME}/.developer-dashboard/config/auth:/opt/even-codex-host-auth:ro"
       - "${EVEN_CODEX_WORKSPACE_PATH}:${EVEN_CODEX_WORKSPACE_PATH}"

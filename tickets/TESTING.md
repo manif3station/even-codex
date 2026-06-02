@@ -3,24 +3,41 @@
 ## Docker Verification
 
 ```bash
-docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-test bash -lc 'cd /workspace/skills/even-codex && rm -rf cover_db /workspace/skills/even-codex/cover_db .even-hub-build dist node_modules && npm ci && HARNESS_PERL_SWITCHES=-MDevel::Cover NODE_PATH=/opt/playwright/node_modules:/workspace/skills/even-codex/node_modules prove -lr t && npm run build:hub && EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npm run pack:hub && EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 ./node_modules/.bin/evenhub pack .even-hub-build/app.json dist -o dist/test-listing.ehpk && cover -report text -select lib/Even/Codex/Spec.pm -select lib/Even/Codex/Protocol.pm -select lib/Even/Codex/State.pm -select lib/Even/Codex/Plugin.pm -select lib/Even/Codex/Sender.pm -select lib/Even/Codex/Server.pm -select lib/Even/Codex/Manager.pm -select lib/Even/Codex/Transcript.pm'
+docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-test bash -lc 'cd /workspace/skills/even-codex && rm -rf cover_db /workspace/skills/even-codex/cover_db .even-hub-build dist node_modules && npm ci && HARNESS_PERL_SWITCHES=-MDevel::Cover NODE_PATH=/opt/playwright/node_modules:/workspace/skills/even-codex/node_modules prove -lr t && npm run build:hub && EVEN_CODEX_HUB_ORIGIN=https://192.168.1.20:7890/ajax/even-codex npm run pack:hub && EVEN_CODEX_HUB_ORIGIN=https://192.168.1.20:7890/ajax/even-codex ./node_modules/.bin/evenhub pack .even-hub-build/app.json dist -o dist/test-listing.ehpk && cover -report text -select lib/Even/Codex/Spec.pm -select lib/Even/Codex/Protocol.pm -select lib/Even/Codex/State.pm -select lib/Even/Codex/Plugin.pm -select lib/Even/Codex/Sender.pm -select lib/Even/Codex/Server.pm -select lib/Even/Codex/Manager.pm -select lib/Even/Codex/Transcript.pm'
+```
+
+Current verified gate command:
+
+```bash
+docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-test bash -lc 'cd /workspace/skills/even-codex && chmod +x cli/compile dashboards/ajax/bootstrap dashboards/ajax/health dashboards/ajax/session dashboards/ajax/prompt && rm -rf cover_db /workspace/skills/even-codex/cover_db .even-hub-build dist node_modules && npm ci && HARNESS_PERL_SWITCHES=-MDevel::Cover NODE_PATH=/opt/playwright/node_modules:/workspace/skills/even-codex/node_modules prove -lr t && npm run build:hub && EVEN_CODEX_HUB_ORIGIN=https://192.168.1.20:7890/ajax/even-codex npm run pack:hub && EVEN_CODEX_HUB_ORIGIN=https://192.168.1.20:7890/ajax/even-codex ./node_modules/.bin/evenhub pack .even-hub-build/app.json dist -o dist/test-listing.ehpk && cover -report text -select lib/Even/Codex/Connector.pm -select lib/Even/Codex/Spec.pm -select lib/Even/Codex/Protocol.pm -select lib/Even/Codex/State.pm -select lib/Even/Codex/Plugin.pm -select lib/Even/Codex/Sender.pm -select lib/Even/Codex/Server.pm -select lib/Even/Codex/Manager.pm -select lib/Even/Codex/Transcript.pm'
 ```
 
 ## Verified Result
 
-- verified on 2026-06-02 for release `0.32`
-- all 24 test files passed
-- `Files=24, Tests=725`
+- verified on 2026-06-02 for release `0.45`
+- all 26 test files passed
+- `Files=26, Tests=891`
 - selected module statement coverage reached `100.0`
 - selected module subroutine coverage reached `100.0`
 - selected module branch coverage reached `100.0`
 - selected module condition coverage reached `100.0`
+- `t/25-dd-web-routes.t` now executes the real `dashboards/ajax/*` scripts, proves the installed execution path resolves the skill-local `lib/` tree, and proves the DD bootstrap payload advertises `/app/even-codex/plugin` plus `/ajax/even-codex/...` routes
+- a live DD helper-auth proof outside the Perl suite verified that:
+  - `https://192.168.1.189:7890/app/even-codex/plugin?workspace_ref=even-codex-proof` returns the helper login page before auth
+  - `POST /login` with the helper user returns `302` back to `/app/even-codex/plugin?workspace_ref=even-codex-proof`
+  - replaying the issued `dashboard_session` cookie against `https://192.168.1.189:7890/ajax/even-codex/bootstrap?workspace_ref=even-codex-proof` returns the paired Codex session JSON with `plugin_url` set to `/app/even-codex/plugin` and the live DD smart ajax endpoints
+- a live simulator smoke outside the Perl suite rechecked the installed skill after the `0.35` reinstall and captured a fresh noVNC screenshot proving the Even simulator desktop was still up and rendering the D2-Codex plugin plus glasses display
+- a fresh live simulator proof outside the Perl suite reinstalled `even-codex 0.45`, launched `dashboard even-codex.simulator start`, and captured actual X-desktop screenshots proving that:
+  - the DD-served Even Hub page first opens on the helper login form over the simulator container's non-loopback HTTPS DD address
+  - the simulator runtime is still non-root at `uid=1000(ubuntu) gid=1000(ubuntu) groups=1000(ubuntu),27(sudo)`
+  - after helper login, the same DD page shows the `D2-Codex` plugin in `CONNECTED` state for workspace `skills`
+  - the glasses surface remains live beside that authenticated plugin page with transcript text rendered from the paired Codex session
 - `t/08-plugin-playwright.t` passed and proved the bundled Even plugin page renders paired session data from `/bootstrap`
 - `npm run build:hub` produced `dist/index.html`
-- `EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npm run pack:hub` produced `dist/d2-codex.ehpk`
+- `EVEN_CODEX_HUB_ORIGIN=https://192.168.1.20:7890/ajax/even-codex npm run pack:hub` produced `dist/d2-codex.ehpk`
 - `t/12-even-hub-ux.t` proved the stronger phone-side controls plus glasses bottom-popup `click -> popup`, `down -> action cycle`, and `double-click -> transcript` wiring
 - `t/13-even-hub-listing.t` proved the listing metadata, greyscale assets, and screenshot workflow files
-- `EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 ./node_modules/.bin/evenhub pack .even-hub-build/app.json dist -o dist/test-listing.ehpk` proved the richer manifest fields still pack
+- `EVEN_CODEX_HUB_ORIGIN=https://192.168.1.20:7890/ajax/even-codex ./node_modules/.bin/evenhub pack .even-hub-build/app.json dist -o dist/test-listing.ehpk` proved the richer manifest fields still pack
 - `t/21-even-hub-voice-playwright.t` now also proves the empty-popup fallback keeps the operator off `Voice UNSUPPORTED`, focuses the phone composer, and closes with a useful phone-mic guidance message
 - `t/14-simulator-cli.t` proved the bash simulator controller start and stop lifecycle
 - `t/15-e2e-cli.t` proved the one-command desktop E2E launcher starts the bridge, app server, and simulator flow together
@@ -71,6 +88,7 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 Coverage summary from the verified run:
 
 ```text
+lib/Even/Codex/Connector.pm  stmt 100.0  bran 100.0  cond 100.0  sub 100.0
 lib/Even/Codex/Manager.pm   stmt 100.0  bran 100.0  cond 100.0  sub 100.0
 lib/Even/Codex/Plugin.pm    stmt 100.0  bran 100.0  cond 100.0  sub 100.0
 lib/Even/Codex/Protocol.pm  stmt 100.0  bran 100.0  cond 100.0  sub 100.0

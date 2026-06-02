@@ -9,6 +9,7 @@ The repository now ships the first runnable LAN bridge slice and a real Even Hub
 - a DD-side connector that pairs a workspace ref to a Codex session id
 - a local HTTP bridge that listens on port `6789` by default
 - a bundled Even plugin web app served from that same bridge under `/plugin/`
+- a DD-served Even plugin page and DD ajax connector on the native DD smart routes under `/app/even-codex/...` and `/ajax/even-codex/...`
 - a packaged Even Hub app for `D2-Codex` under `even-hub/`
 
 The skill will add:
@@ -25,6 +26,7 @@ What it does right now:
 - stores workspace-to-Codex session pairings through `dashboard even-codex.start add <codex-session-id>`
 - starts a LAN bridge through `dashboard even-codex.start`
 - serves machine-readable `/health`, `/bootstrap`, `/session`, and `/prompt` routes plus the bundled Even plugin web app under `/plugin/`
+- exposes a DD-native connector surface through skill-local `config/routes.json`, `dashboards/ajax`, and `dashboards/public`
 
 ## Installation
 
@@ -84,6 +86,27 @@ If you want the older host-local process mode instead of the Docker desktop:
 EVEN_CODEX_SIMULATOR_MODE=local dashboard even-codex.simulator start
 ```
 
+Package the Even Hub app through the DD skill wrapper:
+
+```bash
+dashboard even-codex.compile
+dashboard even-codex.compile https://192.168.1.20:7890/ajax/even-codex
+```
+
+The wrapper reuses the repo `pack:hub` flow, first reuses the shared
+`$HOME/node_modules` toolchain that `dashboard skills install` already stages,
+then falls back to `npm ci` only when the required packaging binaries are
+still missing, and writes `dist/d2-codex.ehpk`.
+
+Open the DD-served plugin connector:
+
+```text
+https://127.0.0.1:7890/app/even-codex/plugin?workspace_ref=foobar
+```
+
+That DD page reuses the skill-local `/ajax` handlers through DD's native smart skill routes.
+If only one saved pairing exists, the `workspace_ref` query parameter is optional.
+
 Start or stop the full local desktop E2E chain:
 
 ```bash
@@ -135,6 +158,67 @@ The plugin reads `/bootstrap` and shows:
 - the latest paired Codex prompt, progress, and reply from `/session`
 - a staged query path that submits back to the paired session through `/prompt`
 
+The DD-served connector surface is also available from `dashboard serve`:
+
+```text
+/app/even-codex/plugin
+/ajax/even-codex/bootstrap
+/ajax/even-codex/health
+/ajax/even-codex/session
+/ajax/even-codex/prompt
+```
+
+Those DD routes are backed by the skill-local `dashboards/ajax` handlers and
+skill-local assets under `dashboards/public`. They reuse the same pairings and
+Codex session logic as the standalone bridge while staying inside the DD web
+stack and helper-session auth model.
+
+## DD Helper Login Flow
+
+The governed DD connector flow for `EVEN-CODEX-GOAL` is:
+
+```text
+codex <-> DD ajax/routes connector <-> Even Plugin <-> glasses ui
+```
+
+Use this operator path:
+
+```bash
+dashboard skills install even-codex
+dashboard auth add-user <username> <password>
+cd ~/project/foobar
+dashboard workspace foobar
+codex
+```
+
+Inside Codex, send any prompt, then run `/status` and copy the session id.
+
+Save that pairing and start the connector:
+
+```bash
+dashboard even-codex.start add <codex-session-id>
+dashboard even-codex.start
+dashboard serve
+```
+
+Then open the DD-served plugin from a non-loopback host so helper auth applies:
+
+```text
+https://192.168.1.20:7890/app/even-codex/plugin?workspace_ref=foobar
+```
+
+The first page is the DD helper login. After the helper user signs in, the same
+browser session can read and post:
+
+```text
+https://192.168.1.20:7890/ajax/even-codex/bootstrap?workspace_ref=foobar
+https://192.168.1.20:7890/ajax/even-codex/session?workspace_ref=foobar
+https://192.168.1.20:7890/ajax/even-codex/prompt?workspace_ref=foobar
+```
+
+That authenticated DD browser session is the intended middle layer between the
+machine-hosted Codex session and the phone-hosted Even plugin.
+
 ## Even Hub Packaging
 
 Build the real Even Hub app:
@@ -148,7 +232,13 @@ npm run build:hub
 Package it for the bridge host you actually want to reach from the phone:
 
 ```bash
-EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npm run pack:hub
+EVEN_CODEX_HUB_ORIGIN=https://192.168.1.20:7890/ajax/even-codex npm run pack:hub
+```
+
+Or package from the installed DD skill copy:
+
+```bash
+dashboard even-codex.compile https://192.168.1.20:7890/ajax/even-codex
 ```
 
 That produces:

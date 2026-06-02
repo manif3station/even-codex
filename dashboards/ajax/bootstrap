@@ -1,0 +1,23 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+
+use FindBin qw($Bin);
+use lib "$Bin/../../lib";
+
+use JSON::PP qw(encode_json);
+
+use Even::Codex::Connector ();
+
+my %params = Even::Codex::Connector::request_params_from_env();
+my $payload = Even::Codex::Connector::bootstrap_payload(
+    env        => \%ENV,
+    params     => \%params,
+    route_base => '/ajax/even-codex',
+);
+$payload->{plugin_url}    = '/app/even-codex/plugin';
+$payload->{bootstrap_url} = '/ajax/even-codex/bootstrap';
+$payload->{health_url}    = '/ajax/even-codex/health';
+$payload->{session_url}   = '/ajax/even-codex/session';
+$payload->{prompt_url}    = '/ajax/even-codex/prompt';
+print encode_json($payload) . "\n";

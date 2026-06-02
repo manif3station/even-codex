@@ -14,6 +14,121 @@ use Even::Codex::Plugin;
 use Even::Codex::Sender;
 use Even::Codex::Server;
 
+for my $case (
+    [ 'host',             { port => 1, workspace_ref => 'w', codex_session_id => 's' }, qr/Host is required/ ],
+    [ 'port',             { host => '127.0.0.1', workspace_ref => 'w', codex_session_id => 's' }, qr/Port is required/ ],
+    [ 'workspace_ref',    { host => '127.0.0.1', port => 1, codex_session_id => 's' }, qr/Workspace ref is required/ ],
+    [ 'codex_session_id', { host => '127.0.0.1', port => 1, workspace_ref => 'w' }, qr/Codex session id is required/ ],
+) {
+    my ( $label, $args, $pattern ) = @{$case};
+    my $error = eval { Even::Codex::Server->new( %{$args} ); 1 } ? q{} : $@;
+    like( $error, $pattern, "constructor requires $label" );
+}
+
+{
+    my $server = Even::Codex::Server->new(
+        host             => '127.0.0.1',
+        port             => 6789,
+        workspace_ref    => 'workspace-default',
+        codex_session_id => 'session-default',
+    );
+    is( $server->{advertised_host}, '127.0.0.1', 'constructor defaults the advertised host to localhost' );
+    is( ref $server->{env}, 'HASH', 'constructor defaults the env hash when none is provided' );
+    isa_ok( $server->{sender}, 'Even::Codex::Sender', 'constructor creates a default sender when none is supplied' );
+    is( $server->base_url, 'http://127.0.0.1:6789', 'base_url uses the advertised host and port' );
+    is_deeply(
+        [ $server->_response_for_request( 'OPTIONS', '/prompt', q{} ) ],
+        [ 204, 'text/plain; charset=utf-8', q{} ],
+        '_response_for_request returns the explicit prompt preflight response',
+    );
+    is_deeply(
+        [ $server->_response_for_request( 'OPTIONS', '/health', q{} ) ],
+        [ 404, 'text/plain; charset=utf-8', 'not found' ],
+        '_response_for_request leaves non-prompt OPTIONS requests on the default not-found path',
+    );
+    is( Even::Codex::Server::_status_text(200), 'OK', '_status_text maps 200 to OK' );
+    is( Even::Codex::Server::_status_text(202), 'Accepted', '_status_text maps 202 to Accepted' );
+    is( Even::Codex::Server::_status_text(204), 'No Content', '_status_text maps 204 to No Content' );
+    is( Even::Codex::Server::_status_text(400), 'Bad Request', '_status_text maps 400 to Bad Request' );
+    is( Even::Codex::Server::_status_text(404), 'Not Found', '_status_text maps unknown statuses to Not Found' );
+}
+
+{
+    my $server = Even::Codex::Server->new(
+        host             => '0.0.0.0',
+        port             => 4321,
+        advertised_host  => '192.168.1.20',
+        workspace_ref    => 'wrapped',
+        codex_session_id => 'wrapped-session',
+        env              => { HOME => '/tmp/wrapped-home' },
+        sender           => bless( {}, 'Local::PromptSender' ),
+    );
+
+    local *Even::Codex::Connector::bootstrap_payload = sub {
+        my (%args) = @_;
+        return {
+            plugin_url       => 'http://192.168.1.20:4321/plugin',
+            workspace_ref    => $args{workspace_ref},
+            codex_session_id => $args{codex_session_id},
+        };
+    };
+    local *Even::Codex::Connector::health_payload = sub {
+        my (%args) = @_;
+        return { ok => 1, service => 'even-codex', port => $args{port}, workspace_ref => $args{workspace_ref} };
+    };
+    local *Even::Codex::Connector::session_payload = sub {
+        my (%args) = @_;
+        return { ok => 1, session_id => $args{codex_session_id}, workspace_ref => $args{workspace_ref} };
+    };
+    local *Even::Codex::Connector::prompt_payload = sub {
+        my (%args) = @_;
+        return {
+            ok               => 1,
+            workspace_ref    => $args{workspace_ref},
+            codex_session_id => $args{codex_session_id},
+            queued_query     => $args{query},
+            sender_class     => ref $args{sender},
+        };
+    };
+
+    my $wrapped_bootstrap = $server->bootstrap_payload;
+    is( $wrapped_bootstrap->{plugin_url}, 'http://192.168.1.20:4321/plugin/', 'bootstrap_payload appends the trailing slash for the plugin url' );
+    is( $wrapped_bootstrap->{workspace_ref}, 'wrapped', 'bootstrap_payload forwards the workspace ref through the connector' );
+
+    my $wrapped_health = $server->health_payload;
+    is( $wrapped_health->{port}, 4321, 'health_payload forwards the listen port through the connector' );
+
+    my $wrapped_session = $server->session_payload;
+    is( $wrapped_session->{session_id}, 'wrapped-session', 'session_payload forwards the paired Codex session id' );
+
+    my $wrapped_prompt = $server->prompt_payload( query => 'ship status' );
+    is( $wrapped_prompt->{queued_query}, 'ship status', 'prompt_payload forwards the user query to the connector' );
+    is( $wrapped_prompt->{sender_class}, 'Local::PromptSender', 'prompt_payload forwards the configured sender object to the connector' );
+
+    my $wrapped_prompt_error = eval { $server->prompt_payload( query => q{} ); 1 } ? q{} : $@;
+    like( $wrapped_prompt_error, qr/Query is required/, 'prompt_payload rejects an empty wrapped query before reaching the connector' );
+}
+
+{
+    my $socket = IO::Socket::INET->new(
+        LocalAddr => '127.0.0.1',
+        LocalPort => 0,
+        Listen    => 1,
+        Proto     => 'tcp',
+        ReuseAddr => 1,
+    ) or die "Unable to reserve the conflict test port: $!";
+    my $busy_port = $socket->sockport;
+    my $server = Even::Codex::Server->new(
+        host             => '127.0.0.1',
+        port             => $busy_port,
+        workspace_ref    => 'busy',
+        codex_session_id => 'busy-session',
+    );
+    my $error = eval { $server->serve( max_requests => 1 ); 1 } ? q{} : $@;
+    like( $error, qr/Unable to start even-codex bridge on 127\.0\.0\.1:$busy_port/, 'serve fails clearly when the listen port is already in use' );
+    close $socket or die "Unable to close the conflict test socket: $!";
+}
+
 my $tmp = tempdir( CLEANUP => 1 );
 my $codex_home = File::Spec->catdir( $tmp, '.codex' );
 my $session_dir = File::Spec->catdir( $codex_home, 'sessions', '2026', '05', '31' );
@@ -53,7 +168,7 @@ if ( $pid == 0 ) {
             EVEN_CODEX_CODEX_HOME  => $codex_home,
         },
     );
-    $server->serve( max_requests => 12 );
+    $server->serve( max_requests => 18 );
     exit 0;
 }
 
@@ -108,6 +223,10 @@ eval {
     like( $plugin->{body}, qr/D2-Codex Bridge/, '/plugin/ serves the plugin HTML shell' );
     like( $plugin->{body}, qr/even-codex-app/, '/plugin/ includes the plugin root container' );
 
+    my $plugin_without_slash = _http_get( $port, '/plugin' );
+    is( $plugin_without_slash->{status}, 200, '/plugin returns HTTP 200' );
+    like( $plugin_without_slash->{body}, qr/D2-Codex Bridge/, '/plugin serves the plugin HTML shell without the trailing slash path' );
+
     my $manifest = _http_get( $port, '/plugin/manifest.json' );
     is( $manifest->{status}, 200, '/plugin/manifest.json returns HTTP 200' );
     my $manifest_payload = decode_json( $manifest->{body} );
@@ -122,6 +241,34 @@ eval {
     my $stylesheet = _http_get( $port, '/plugin/styles.css' );
     is( $stylesheet->{status}, 200, '/plugin/styles.css returns HTTP 200' );
     like( $stylesheet->{body}, qr/\.even-codex-shell/, '/plugin/styles.css serves the plugin stylesheet' );
+
+    my $missing_query = _http_request( $port, 'POST', '/prompt', '{"query":""}' );
+    is( $missing_query->{status}, 400, '/prompt rejects an empty query' );
+    like( $missing_query->{body}, qr/Query is required/, '/prompt returns a clear validation error for empty queries' );
+
+    my $non_hash = _http_request( $port, 'POST', '/prompt', '[]' );
+    is( $non_hash->{status}, 400, '/prompt rejects a non-object JSON payload' );
+
+    my $empty_post = _http_request( $port, 'POST', '/prompt', q{} );
+    is( $empty_post->{status}, 400, '/prompt rejects an empty POST body' );
+
+    my $bad_content_length = _raw_http_request(
+        $port,
+        "POST /prompt HTTP/1.1\r\nHost: 127.0.0.1:$port\r\nContent-Type: application/json\r\nContent-Length: nope\r\nConnection: close\r\n\r\n{\"query\":\"ignored\"}",
+    );
+    is( $bad_content_length->{status}, 400, 'invalid content-length leaves the prompt body unread and returns a validation error' );
+
+    my $bad_header = _raw_http_request(
+        $port,
+        "GET /health HTTP/1.1\r\nHost: 127.0.0.1:$port\r\nBroken-Header\r\nConnection: close\r\n\r\n",
+    );
+    is( $bad_header->{status}, 200, 'header lines without a colon are ignored safely' );
+
+    my $bad_request = _raw_http_request(
+        $port,
+        "BROKENREQUEST\r\nConnection: close\r\n\r\n",
+    );
+    is( $bad_request->{status}, 404, 'malformed request lines fall back to the default not found route' );
 
     is( Even::Codex::Plugin::manifest_hash()->{name}, 'D2-Codex', 'plugin manifest helper returns the plugin name' );
 };
@@ -157,7 +304,25 @@ sub _http_request {
     print {$socket} $payload if $method eq 'POST';
     my $raw = do { local $/; <$socket> };
     close $socket;
+    return _parse_http_response($raw);
+}
 
+sub _raw_http_request {
+    my ( $port, $raw_request ) = @_;
+    my $socket = IO::Socket::INET->new(
+        PeerAddr => '127.0.0.1',
+        PeerPort => $port,
+        Proto    => 'tcp',
+    ) or die "Unable to connect to test server: $!";
+
+    print {$socket} $raw_request;
+    my $raw = do { local $/; <$socket> };
+    close $socket;
+    return _parse_http_response($raw);
+}
+
+sub _parse_http_response {
+    my ($raw) = @_;
     my ( $head, $response_body ) = split /\r?\n\r?\n/, $raw, 2;
     my ($status) = $head =~ m{\AHTTP/1\.1\s+(\d+)};
     my ($content_type) = $head =~ /^Content-Type:\s*(.+)$/mi;

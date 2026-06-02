@@ -6,7 +6,7 @@ const sourceManifestPath = path.join(repoRoot, 'app.json');
 const generatedDir = path.join(repoRoot, '.even-hub-build');
 const generatedManifestPath = path.join(generatedDir, 'app.json');
 const bridgeOrigin = normalizeOrigin(
-  process.env.EVEN_CODEX_HUB_ORIGIN || 'http://192.168.1.20:6789',
+  process.env.EVEN_CODEX_HUB_ORIGIN || 'https://192.168.1.20:7890/ajax/even-codex',
 );
 
 const manifest = JSON.parse(await fs.readFile(sourceManifestPath, 'utf8'));

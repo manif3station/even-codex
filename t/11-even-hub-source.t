@@ -16,6 +16,7 @@ my $package = slurp('package.json');
 like( $package, qr/\@evenrealities\/even_hub_sdk/, 'package.json includes the Even Hub SDK dependency' );
 like( $package, qr/\@evenrealities\/evenhub-cli/, 'package.json includes the Even Hub CLI dependency' );
 like( $package, qr/"build:hub"/, 'package.json exposes a build script for the Even Hub app' );
+like( $package, qr/stage-dd-even-hub-assets/, 'package.json stages the built Even Hub assets for the DD smart-route page' );
 like( $package, qr/"pack:hub"/, 'package.json exposes a packaging script for the Even Hub app' );
 like( $package, qr/"capture:hub-screens"/, 'package.json exposes a screenshot capture script for the Even Hub app' );
 
@@ -63,6 +64,10 @@ like( $source, qr/rebuildPageContainer/, 'Even Hub source rebuilds the page cont
 like( $source, qr/GLASSES_TRANSCRIPT_CONTAINER_NAME/, 'Even Hub source uses a dedicated single transcript container' );
 like( $source, qr/loadBridge\(\)/, 'Even Hub source supports a bridge loader indirection for governed runtime proof' );
 like( $source, qr/speechRecognitionSupported/, 'Even Hub source detects speech-recognition support' );
+like( $source, qr/determineDefaultConnectorBase/, 'Even Hub source derives a default connector base at runtime' );
+like( $source, qr/normalizeConnectorBase/, 'Even Hub source preserves connector pathname segments for DD smart routes' );
+like( $source, qr/\/ajax\/even-codex/, 'Even Hub source supports the DD smart ajax connector path' );
+like( $source, qr/startsWith\('\/app\/even-codex\/'\)/, 'Even Hub source detects when it is running from the DD smart-route page' );
 like( $source, qr/__evenCodexSpeechRecognitionFactory/, 'Even Hub source supports a speech-recognition factory override for runtime proof' );
 like( $source, qr/audioControl\(true\)/, 'Even Hub source requests microphone capture when the hybrid voice path starts' );
 like( $source, qr/startVoiceInput/, 'Even Hub source implements a dedicated voice-input start path' );
@@ -81,5 +86,21 @@ like( $transcript_helper, qr/wrapTranscriptLine/, 'transcript helper exposes lin
 like( $transcript_helper, qr/buildTranscriptRenderLines/, 'transcript helper exposes transcript render slicing' );
 like( $transcript_helper, qr/slice\(-visibleLines\)/, 'transcript helper keeps live-follow output pinned to the newest wrapped lines' );
 like( $transcript_helper, qr/scrollOffset/, 'transcript helper supports one-line transcript stepping during manual review' );
+
+my $runtime = slurp('docker/simulator/runtime.sh');
+like( $runtime, qr/container_ip="\$\(hostname -I \| awk '\{print \$1\}'\)"/, 'simulator runtime resolves the container IP before launching the DD HTTPS page' );
+like( $runtime, qr/dashboard serve --host "\$\{container_ip\}" --port 7890 --ssl --foreground/, 'simulator runtime binds DD HTTPS on the container IP so the generated cert SAN matches the simulator URL' );
+like( $runtime, qr/EVEN_CODEX_SIMULATOR_URL="https:\/\/\$\{container_ip\}:7890\/app\/even-codex\/even-hub\?workspace_ref=\$\{WORKSPACE_REF\}"/, 'simulator runtime drives the Even Hub simulator from the DD-served HTTPS page on the container IP' );
+like( $runtime, qr/sudo install -m 0644 "\$\{cert_path\}" \/usr\/local\/share\/ca-certificates\/even-codex-dashboard\.crt/, 'simulator runtime trusts the generated DD HTTPS cert before launching the simulator webview' );
+like( $runtime, qr/sudo update-ca-certificates/, 'simulator runtime refreshes the system trust store after staging the DD HTTPS cert' );
+like( $runtime, qr/\/opt\/even-codex-host-auth\/users/, 'simulator runtime imports host helper-auth users into the container DD home before launch' );
+
+my $dockerfile = slurp('docker/simulator/Dockerfile');
+like( $dockerfile, qr/\bsudo\b/, 'simulator image installs sudo for the one-time trust-store bootstrap' );
+like( $dockerfile, qr/NOPASSWD:ALL/, 'simulator image allows the runtime user to run the trust-store bootstrap without an interactive password' );
+
+my $compose = slurp('docker-compose.simulator.yml');
+like( $compose, qr/\.developer-dashboard\/config\/auth:\/opt\/even-codex-host-auth:ro/, 'simulator compose mounts the host DD helper-auth records at a neutral read-only import path' );
+like( $compose, qr/group_add:\s*\n\s*-\s*"27"/, 'simulator compose adds the sudo supplementary group so the non-root runtime can trust the DD HTTPS cert' );
 
 done_testing;

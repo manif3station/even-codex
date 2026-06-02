@@ -38,6 +38,59 @@ Useful endpoints:
 - `http://127.0.0.1:6789/bootstrap`
 - `http://127.0.0.1:6789/plugin/`
 
+## Use The DD-Served Connector
+
+Start the DD web app:
+
+```bash
+dashboard serve
+```
+
+Then open the skill-local DD plugin connector:
+
+```text
+https://127.0.0.1:7890/app/even-codex/plugin?workspace_ref=foobar
+```
+
+DD connector endpoints:
+
+- `https://127.0.0.1:7890/ajax/even-codex/health?workspace_ref=foobar`
+- `https://127.0.0.1:7890/ajax/even-codex/bootstrap?workspace_ref=foobar`
+- `https://127.0.0.1:7890/ajax/even-codex/session?workspace_ref=foobar`
+- `https://127.0.0.1:7890/ajax/even-codex/prompt?workspace_ref=foobar`
+
+Those routes are served by the DD web stack through the skill-local
+smart routes plus the skill-local `dashboards/ajax` and `dashboards/public`
+trees. When only one workspace pairing exists, the `workspace_ref` query
+parameter is optional.
+
+For the real helper-user flow that the Even phone plugin should follow:
+
+```bash
+dashboard skills install even-codex
+dashboard auth add-user <username> <password>
+cd ~/project/foobar
+dashboard workspace foobar
+codex
+```
+
+After you send one prompt and copy the session id from `/status`:
+
+```bash
+dashboard even-codex.start add <codex-session-id>
+dashboard even-codex.start
+dashboard serve
+```
+
+Then the phone-side plugin should visit the DD page over a non-loopback host:
+
+```text
+https://192.168.1.20:7890/app/even-codex/plugin?workspace_ref=foobar
+```
+
+The helper login page is served first. After login, the DD session cookie lets
+the Even plugin browser session call the `/ajax/even-codex/...` endpoints.
+
 ## Build The Even Hub App
 
 Build the packaged `D2-Codex` app from the repo root:
@@ -55,7 +108,14 @@ This produces a real `dist/index.html` entrypoint for the Even Hub package flow.
 The app whitelist must match the exact LAN origin the phone-side Even app will call. Package with the right host and port:
 
 ```bash
-EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npm run pack:hub
+EVEN_CODEX_HUB_ORIGIN=https://192.168.1.20:7890/ajax/even-codex npm run pack:hub
+```
+
+Or use the DD skill wrapper from any installed copy:
+
+```bash
+dashboard even-codex.compile
+dashboard even-codex.compile https://192.168.1.20:7890/ajax/even-codex
 ```
 
 This writes:
@@ -71,6 +131,12 @@ The generated package manifest is also written to:
 ```
 
 That generated manifest mirrors the committed `app.json` schema but swaps the network whitelist to the requested `EVEN_CODEX_HUB_ORIGIN`.
+
+The compile wrapper reuses the same packaging flow, defaults to
+`https://192.168.1.20:7890/ajax/even-codex`, first reuses the shared `$HOME/node_modules`
+toolchain that `dashboard skills install` already stages, auto-runs `npm ci`
+only when the required packaging binaries are still missing, and reports the
+selected origin together with the generated `.ehpk` path.
 
 ## Capture Hub Submission Screenshots
 
@@ -309,7 +375,7 @@ an empty send state.
 - `dashboard even-codex.start` serves JSON from `/health` and `/bootstrap`
 - `/plugin/` loads the bundled Even plugin page and renders the paired workspace and session metadata
 - `npm run build:hub` writes `dist/index.html` for Even Hub packaging
-- `EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npm run pack:hub` writes `dist/d2-codex.ehpk`
+- `EVEN_CODEX_HUB_ORIGIN=https://192.168.1.20:7890/ajax/even-codex npm run pack:hub` writes `dist/d2-codex.ehpk`
 - the packaged `D2-Codex` Hub app shows a guided phone-side connector and session dashboard plus a single-container glasses transcript layout
 - the transcript layout now follows a governed live-bottom contract instead of rebuilding the whole glasses page on every poll
 - the hybrid voice-query browser proof shows `glasses click -> recognised draft -> click submit` with `what is 2 plus 3` flowing into the staged query and latest prompt panels

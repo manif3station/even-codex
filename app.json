@@ -2,10 +2,10 @@
   "package_id": "com.ddskill.d2codex",
   "edition": "202601",
   "name": "D2-Codex",
-  "version": "0.32.0",
+  "version": "0.45.0",
   "tagline": "Developer Dashboard Codex on Even glasses",
   "description": "Bring a live Developer Dashboard Codex workspace onto the Even app and glasses. D2-Codex promotes the broader Developer Dashboard ecosystem for daily AI-assisted operations, skill management, and UI creation around Codex sessions.",
-  "changelog": "Changed glasses transcript review to move one rendered line per Up or Down gesture, so the first upward gesture no longer jumps the operator to the top of a larger review buffer.",
+  "changelog": "Moved the governed Even Hub connector defaults and simulator proof onto the DD HTTPS ajax routes, so the packaged plugin, helper-auth login, and DD-served connector all align to the same non-loopback HTTPS flow.",
   "min_app_version": "2.0.0",
   "min_sdk_version": "0.0.10",
   "entrypoint": "index.html",
@@ -16,9 +16,9 @@
     },
     {
       "name": "network",
-      "desc": "This app needs network access to reach the paired D2-Codex LAN bridge.",
+      "desc": "This app needs network access to reach the paired D2-Codex Developer Dashboard connector.",
       "whitelist": [
-        "http://192.168.1.20:6789"
+        "https://192.168.1.20:7890"
       ]
     }
   ],

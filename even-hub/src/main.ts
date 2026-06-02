@@ -140,8 +140,7 @@ type SessionPayload = {
 
 const CONFIG_STORAGE_KEY = 'd2_codex.config';
 const LEGACY_ORIGIN_STORAGE_KEY = 'd2_codex.bridge_origin';
-const DEFAULT_BRIDGE_ORIGIN =
-  import.meta.env.VITE_EVEN_CODEX_DEFAULT_BRIDGE_ORIGIN || 'http://192.168.1.20:6789';
+const DEFAULT_BRIDGE_ORIGIN = determineDefaultConnectorBase();
 const AUTO_REFRESH_INTERVAL_MS = 3000;
 const GLASSES_TRANSCRIPT_CONTAINER_ID = 1;
 const GLASSES_TRANSCRIPT_CONTAINER_NAME = 'd2-codex-transcript';
@@ -720,7 +719,7 @@ function renderPhoneUi(state: PluginState) {
             <input class="input" id="connectorName" name="connectorName" type="text" value="${escapeHtml(connector.name)}" />
             <label class="label" for="bridgeOrigin">Bridge Origin</label>
             <input class="input" id="bridgeOrigin" name="bridgeOrigin" type="url" value="${escapeHtml(connector.origin)}" />
-            <p class="hint">Use a LAN-reachable host such as <code>http://192.168.1.20:6789</code>. Port 6789 is the default DD connector port.</p>
+            <p class="hint">Use the DD HTTPS ajax connector, for example <code>https://192.168.1.20:7890/ajax/even-codex</code>. The legacy bridge still listens on port 6789, but the governed DD connector path is HTTPS on port 7890.</p>
             <button class="button" type="button" data-role="save-connector-button">Save Connector</button>
           </form>
           <div class="profile-list">${renderConnectorProfiles(state)}</div>
@@ -1397,7 +1396,7 @@ function mergeSessionIntoConnector(connector: ConnectorProfile, session: Session
 }
 
 function createConnectorProfile(name: string, origin: string, index: number): ConnectorProfile {
-  const normalizedOrigin = normalizeOrigin(origin);
+  const normalizedOrigin = normalizeConnectorBase(origin);
   return {
     id: `connector-${Date.now()}-${index}`,
     name,
@@ -1409,10 +1408,10 @@ function createConnectorProfile(name: string, origin: string, index: number): Co
     bindHost: 'Unknown',
     advertisedHost: 'Unknown',
     port: 6789,
-    healthUrl: `${normalizedOrigin}/health`,
-    bootstrapUrl: `${normalizedOrigin}/bootstrap`,
-    pluginUrl: `${normalizedOrigin}/plugin/`,
-    promptUrl: `${normalizedOrigin}/prompt`,
+    healthUrl: connectorEndpoint(normalizedOrigin, 'health'),
+    bootstrapUrl: connectorEndpoint(normalizedOrigin, 'bootstrap'),
+    pluginUrl: connectorPluginUrl(normalizedOrigin),
+    promptUrl: connectorEndpoint(normalizedOrigin, 'prompt'),
     lastSeenAt: 'Not checked yet',
     lastUserMessage: 'No prompt yet.',
     lastAssistantProgressMessage: 'No progress yet.',
@@ -1460,7 +1459,7 @@ function normalizeStoredConfig(config: StoredConfig) {
           index + 1,
         ),
         ...connector,
-        origin: normalizeOrigin(connector.origin || DEFAULT_BRIDGE_ORIGIN),
+        origin: normalizeConnectorBase(connector.origin || DEFAULT_BRIDGE_ORIGIN),
         sessions: Array.isArray(connector.sessions)
           ? connector.sessions.filter((session) => session && session.id).map((session) => ({
               id: session.id,
@@ -1501,13 +1500,40 @@ function truncateForGlasses(value: string) {
   return truncate(value, 56);
 }
 
-function normalizeOrigin(value: string) {
+function normalizeConnectorBase(value: string) {
   const parsed = new URL(value);
   if (!/^https?:$/.test(parsed.protocol)) {
     throw new Error('Bridge origin must use http or https.');
   }
 
-  return parsed.origin;
+  const pathname = parsed.pathname.replace(/\/+$/, '');
+  return `${parsed.origin}${pathname}`;
+}
+
+function connectorEndpoint(base: string, name: string) {
+  return `${base}/${name}`;
+}
+
+function connectorPluginUrl(base: string) {
+  if (base.endsWith('/ajax/even-codex')) {
+    return `${base.slice(0, -'/ajax/even-codex'.length)}/app/even-codex/plugin`;
+  }
+
+  return `${base}/plugin/`;
+}
+
+function determineDefaultConnectorBase() {
+  if (typeof window !== 'undefined') {
+    const { origin, pathname } = window.location;
+    if (pathname.startsWith('/app/even-codex/')) {
+      return `${origin}/ajax/even-codex`;
+    }
+  }
+
+  return (
+    import.meta.env.VITE_EVEN_CODEX_DEFAULT_BRIDGE_ORIGIN ||
+    'https://192.168.1.20:7890/ajax/even-codex'
+  );
 }
 
 function normalizeDraftQuery(value: string) {

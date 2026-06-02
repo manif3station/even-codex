@@ -34,7 +34,11 @@ like( $source, qr/data-role="start-voice-query-button"/, 'phone UI exposes a voi
 like( $source, qr/data-role="stop-voice-query-button"/, 'phone UI exposes a voice-stop control' );
 like( $source, qr/starts with <code>Slash<\/code>|normalize/i, 'phone UI explains slash normalization for staged queries' );
 like( $source, qr/\/session/, 'source fetches the live transcript route' );
-like( $source, qr/\/prompt/, 'source submits staged prompts through the bridge prompt route' );
+like(
+    $source,
+    qr/fetch\(connector\.promptUrl,\s*\{/,
+    'source submits staged prompts through the active connector prompt URL',
+);
 like( $source, qr/refreshBootstrap/, 'source centralizes bridge refresh work' );
 like( $source, qr/buildTranscriptText/, 'source builds the glasses transcript view' );
 like( $source, qr/buildInputText/, 'source builds a staged glasses popup view' );

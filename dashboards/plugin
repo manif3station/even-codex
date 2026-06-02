@@ -1,0 +1,50 @@
+TITLE: D2-Codex DD Plugin
+:--------------------------------------------------------------------------------:
+BOOKMARK: plugin
+:--------------------------------------------------------------------------------:
+HTML: <link rel="stylesheet" href="/css/even-codex/dd-plugin.css">
+<main class="even-codex-shell" id="even-codex-app">
+  <header class="even-codex-hero">
+    <p class="even-codex-kicker">Developer Dashboard Plugin</p>
+    <h1>D2-Codex Connector</h1>
+    <p class="even-codex-copy">This DD-served plugin reuses skill-local <code>/ajax</code> routes for the paired Codex session. Add <code>?workspace_ref=foobar</code> when more than one workspace pairing exists.</p>
+  </header>
+  <section class="even-codex-grid">
+    <article class="even-codex-card">
+      <h2>Workspace</h2>
+      <p data-field="workspace-ref">Loading...</p>
+    </article>
+    <article class="even-codex-card">
+      <h2>Codex Session</h2>
+      <p data-field="codex-session-id">Loading...</p>
+    </article>
+    <article class="even-codex-card">
+      <h2>Connector</h2>
+      <p data-field="bind-host">Loading...</p>
+    </article>
+    <article class="even-codex-card">
+      <h2>Bootstrap</h2>
+      <p data-field="bootstrap-url">Loading...</p>
+    </article>
+  </section>
+  <section class="even-codex-grid">
+    <article class="even-codex-card">
+      <h2>Latest Prompt</h2>
+      <p data-field="last-user-message">Loading...</p>
+    </article>
+    <article class="even-codex-card">
+      <h2>Latest Reply</h2>
+      <p data-field="last-assistant-message">Loading...</p>
+    </article>
+  </section>
+  <section class="even-codex-card even-codex-composer">
+    <h2>Send Prompt</h2>
+    <form id="even-codex-prompt-form">
+      <label class="even-codex-label" for="even-codex-query">Query</label>
+      <textarea id="even-codex-query" name="query" rows="4" placeholder="Ask Codex from the DD-served plugin..."></textarea>
+      <button type="submit">Send</button>
+    </form>
+  </section>
+  <p class="even-codex-note" id="even-codex-status">Waiting for DD connector bootstrap...</p>
+</main>
+<script src="/js/even-codex/dd-plugin.js"></script>

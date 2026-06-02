@@ -35,6 +35,7 @@ RUN apt-get update \
     novnc \
     openbox \
     scrot \
+    sudo \
     websockify \
     xdotool \
     xterm \
@@ -55,12 +56,16 @@ RUN npm install \
  && dashboard skills install /opt/even-codex
 
 RUN set -eux; \
+    printf '%%sudo ALL=(ALL) NOPASSWD:ALL\n' >/etc/sudoers.d/even-codex; \
+    chmod 0440 /etc/sudoers.d/even-codex; \
     if ! getent group "${EVEN_CODEX_HOST_GID}" >/dev/null; then \
       groupadd --gid "${EVEN_CODEX_HOST_GID}" "${EVEN_CODEX_RUNTIME_USER}"; \
     fi; \
     if ! getent passwd "${EVEN_CODEX_HOST_UID}" >/dev/null; then \
-      useradd --uid "${EVEN_CODEX_HOST_UID}" --gid "${EVEN_CODEX_HOST_GID}" --create-home --shell /bin/bash "${EVEN_CODEX_RUNTIME_USER}"; \
+      useradd --uid "${EVEN_CODEX_HOST_UID}" --gid "${EVEN_CODEX_HOST_GID}" --groups sudo --create-home --shell /bin/bash "${EVEN_CODEX_RUNTIME_USER}"; \
     fi; \
+    existing_user="$(getent passwd "${EVEN_CODEX_HOST_UID}" | cut -d: -f1)"; \
+    usermod -aG sudo "${existing_user}"; \
     mkdir -p "${EVEN_CODEX_RUNTIME_HOME}"; \
     chown -R "${EVEN_CODEX_HOST_UID}:${EVEN_CODEX_HOST_GID}" "${EVEN_CODEX_RUNTIME_HOME}" /opt/even-codex
 

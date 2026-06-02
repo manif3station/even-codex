@@ -1,5 +1,75 @@
 Revision history for even-codex
 
+0.45 2026-06-02
+
+    - align the packaged Even Hub app, compile wrapper, and governed docs to
+      the DD HTTPS ajax connector path under
+      `https://<host>:7890/ajax/even-codex` instead of the legacy direct
+      `http://<host>:6789` bridge default
+    - refresh the simulator HTTPS helper-auth proof and the governed source
+      tests so the release gate matches the shipped DD smart-route connector
+      model end to end
+
+0.37 2026-06-02
+
+    - fix the DD-served simulator URL to use the container's non-loopback HTTP
+      dashboard address instead of HTTPS, matching the actual `dashboard serve`
+      protocol inside the simulator container and removing the live TLS
+      handshake failure from the DD login-gate path
+
+0.36 2026-06-02
+
+    - move the simulator Even plugin onto a DD-served Even Hub page under
+      `/app/even-codex/even-hub` so the live simulator path can exercise the
+      non-loopback helper-login gate instead of bypassing it through a loopback
+      standalone bridge origin
+    - preserve connector pathname segments in the Even Hub app so DD smart
+      ajax bases such as `/ajax/even-codex` remain valid connector targets
+    - stage the built Even Hub bundle into `dashboards/public` with stable
+      filenames so the DD-served page can load the same governed app build
+
+0.35 2026-06-02
+
+    - fix the DD `/ajax/even-codex/...` scripts so their installed execution
+      path resolves the skill-local `lib/` tree correctly instead of walking
+      one directory too far upward
+    - align the DD bootstrap payload to the native smart routes so the live
+      plugin now advertises `/app/even-codex/plugin` together with
+      `/ajax/even-codex/...` endpoints that really exist on `dashboard serve`
+    - switch the DD-served plugin page to the native DD smart skill routes
+      under `/app/even-codex/...`, `/ajax/even-codex/...`,
+      `/js/even-codex/...`, and `/css/even-codex/...`
+    - document the helper-user HTTPS login flow that turns the DD browser
+      session into the authenticated middle layer for `EVEN-CODEX-GOAL`
+
+0.34 2026-06-02
+
+    - add `dashboard even-codex.compile` as the governed Even Hub package
+      wrapper so `D2-Codex` can build without a global `evenhub` install
+    - reuse the shared `$HOME/node_modules` toolchain that `dashboard skills
+      install` already stages, then fall back to local `npm ci` only when the
+      installed skill copy still lacks the required packaging binaries
+    - add a DD-native connector surface through skill-local `config/routes.json`,
+      `dashboards/ajax`, `dashboards/public`, and `/even-codex/...` routes so
+      the phone-side plugin can reuse DD `/app` and `/ajax` instead of relying
+      only on the standalone bridge endpoints
+    - add governed compile-wrapper and DD-route connector tests and document
+      the new CLI and browser workflows across the operator and maintainer docs
+
+0.33 2026-06-02
+
+    - add `dashboard even-codex.compile` as the governed Even Hub package
+      wrapper so `D2-Codex` can build without a global `evenhub` install
+    - reuse the shared `$HOME/node_modules` toolchain that `dashboard skills
+      install` already stages, then fall back to local `npm ci` only when the
+      installed skill copy still lacks the required packaging binaries
+    - add a DD-native connector surface through skill-local `config/routes.json`,
+      `dashboards/ajax`, `dashboards/public`, and `/even-codex/...` routes so
+      the phone-side plugin can reuse DD `/app` and `/ajax` instead of relying
+      only on the standalone bridge endpoints
+    - add governed compile-wrapper and DD-route connector tests and document
+      the new CLI and browser workflows across the operator and maintainer docs
+
 0.32 2026-06-02
 
     - change transcript review on glasses to move by one rendered wrapped line
