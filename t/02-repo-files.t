@@ -59,6 +59,7 @@ my @paths = (
     'docs/changes/2026-05-31-runnable-lan-bridge-and-plugin.md',
     'docs/changes/2026-06-02-readme-e2e-flow.md',
     'docs/changes/2026-06-02-native-codex-simulator-bin.md',
+    'docs/changes/2026-06-02-simulator-launcher-gate.md',
     'tickets/SOW.md',
     'tickets/EPIC-315.md',
     'tickets/EPIC-322.md',
@@ -89,10 +90,12 @@ my @paths = (
     'tickets/DD-344.md',
     'tickets/DD-356.md',
     'tickets/DD-357.md',
+    'tickets/DD-358.md',
     'tickets/EPIC-343.md',
     'tickets/EPIC-334.md',
     'tickets/EPIC-356.md',
     'tickets/EPIC-357.md',
+    'tickets/EPIC-358.md',
     'tickets/TESTING.md',
     't/12-even-hub-ux.t',
     't/13-even-hub-listing.t',
@@ -128,5 +131,14 @@ like( $readme, qr/Open `D2-Codex` on the phone plugin\./, 'README.md explains th
 like( $readme, qr/The glasses receive the transcript view\./, 'README.md explains the glasses transcript step' );
 like( $readme, qr/User interaction starts from the glasses click\./, 'README.md explains the popup interaction step' );
 like( $readme, qr/The skill submits the query into the paired Codex session\./, 'README.md explains the return path into Codex' );
+like( $readme, qr/dashboard even-codex\.simulator start/, 'README.md records the exact simulator launcher command for governed proof' );
+like( $readme, qr/installed skill copy has been refreshed/, 'README.md records that the installed skill copy must be refreshed before trusting launcher proof' );
+
+open my $rules_fh, '<', 'docs/release-rules.md' or die "Unable to open docs/release-rules.md: $!";
+my $rules = do { local $/; <$rules_fh> };
+close $rules_fh;
+
+like( $rules, qr/dashboard even-codex\.simulator start/, 'release rules require the exact simulator launcher path' );
+like( $rules, qr/installed skill copy under.*must be current with the repo under\s+test/s, 'release rules require a fresh installed skill copy before trusting launcher proof' );
 
 done_testing;

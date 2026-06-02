@@ -8,9 +8,9 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 
 ## Verified Result
 
-- verified on 2026-06-01 for release `0.29`
+- verified on 2026-06-02 for release `0.29`
 - all 22 test files passed
-- `Files=22, Tests=681`
+- `Files=22, Tests=688`
 - selected module statement coverage reached `100.0`
 - selected module subroutine coverage reached `100.0`
 - selected module branch coverage reached `100.0`
@@ -48,6 +48,14 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
   - `test -x "$EVEN_CODEX_REAL_CODEX_BIN"`
   - `"$EVEN_CODEX_REAL_CODEX_BIN" --version`
   which confirmed the simulator now points at `/opt/codex-cli/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex` and executes `codex-cli 0.135.0` without entering the wrapper self-update path
+- a follow-up exact-launcher proof outside the Perl suite refreshed the
+  installed skill copy, reran `dashboard even-codex.simulator start` for the
+  paired `books` workspace, and then confirmed from the live simulator process
+  tree that:
+  - the visible xterm launch target was the packaged native Codex binary path
+  - `/opt/codex-cli/bin/codex` was no longer the xterm launch target
+  - the X display was live and screenshot capture succeeded from the restarted
+    simulator stack
 
 Coverage summary from the verified run:
 

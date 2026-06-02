@@ -200,6 +200,11 @@ In the Dockerized noVNC desktop, the Codex xterm, the phone-side Even plugin, an
 The same simulator flow now also proves the staged query path: `slash ship status` is normalized to `/ship status` and shown in the phone plugin composer.
 The current release extends that to the visible simulator buttons too: a live screenshot-reviewed run proves transcript-by-default, the on-screen `Click` button opens a bottom popup box while keeping the transcript visible behind it, `Up` and `Down` change the selected action inside that popup, a second `Click` can dismiss the popup through `Cancel` or send the staged prompt, and `Double click` returns to the transcript.
 The current governed voice slice extends that further: a screenshot-reviewed browser proof now shows a glasses click opening the popup, a companion speech-recognition run filling `what is 2 plus 3` into the draft, and a second click submitting that recognised query through the existing prompt path.
+For simulator-launcher or Codex-startup fixes, the release gate must also prove
+the exact `dashboard even-codex.simulator start` path against a real paired
+workspace after the installed skill copy has been refreshed. Repo-only checks,
+container-only checks, or direct `docker run` proof are not enough on their own
+for that slice.
 
 Edge-case example:
 

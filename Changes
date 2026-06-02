@@ -20,6 +20,10 @@ Revision history for even-codex
     - launch the packaged native Codex binary in the simulator xterm so the
       non-root desktop runtime no longer falls into the Node wrapper self-update
       branch that can try `npm install -g @openai/codex@latest`
+    - require simulator-launcher and Codex-startup tickets to prove the exact
+      `dashboard even-codex.simulator start` path after refreshing the
+      installed skill copy, so future release gates cannot stop at repo-only or
+      container-only startup proof
 
 0.28 2026-06-01
 
