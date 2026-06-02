@@ -2,7 +2,7 @@
   "package_id": "com.ddskill.d2codex",
   "edition": "202601",
   "name": "D2-Codex",
-  "version": "0.29.0",
+  "version": "0.30.0",
   "tagline": "Developer Dashboard Codex on Even glasses",
   "description": "Bring a live Developer Dashboard Codex workspace onto the Even app and glasses. D2-Codex promotes the broader Developer Dashboard ecosystem for daily AI-assisted operations, skill management, and UI creation around Codex sessions.",
   "changelog": "Added the governed hybrid voice-query popup, mirrored recognised speech into the staged draft, and aligned the popup flow to the reviewed bottom-modal model.",

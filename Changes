@@ -1,6 +1,6 @@
 Revision history for even-codex
 
-0.29 2026-06-01
+0.30 2026-06-02
 
     - add a governed hybrid voice-query flow to the `D2-Codex` Even Hub app
       so a glasses click can open the popup, start a speech-recognition

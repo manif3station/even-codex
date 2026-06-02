@@ -8,7 +8,7 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 
 ## Verified Result
 
-- verified on 2026-06-02 for release `0.29`
+- verified on 2026-06-02 for release `0.30`
 - all 23 test files passed
 - `Files=23, Tests=704`
 - selected module statement coverage reached `100.0`
