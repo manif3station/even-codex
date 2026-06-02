@@ -10,7 +10,7 @@ use Even::Codex::Plugin ();
 use Even::Codex::Sender ();
 use Even::Codex::Transcript ();
 
-our $VERSION = '0.30';
+our $VERSION = '0.31';
 
 sub new {
     my ( $class, %args ) = @_;

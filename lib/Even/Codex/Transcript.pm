@@ -8,7 +8,7 @@ use File::Find qw(find);
 use File::Spec;
 use JSON::PP qw(decode_json);
 
-our $VERSION = '0.30';
+our $VERSION = '0.31';
 
 sub session_snapshot {
     my (%args) = @_;

@@ -41,6 +41,7 @@ like( $source, qr/OsEventTypeList\.ABNORMAL_EXIT_EVENT/, 'Even Hub source handle
 like( $source, qr/OsEventTypeList\.SYSTEM_EXIT_EVENT/, 'Even Hub source handles system exit' );
 like( $source, qr/OsEventTypeList\.SCROLL_TOP_EVENT/, 'Even Hub source handles upward glasses navigation events' );
 like( $source, qr/OsEventTypeList\.SCROLL_BOTTOM_EVENT/, 'Even Hub source handles downward glasses navigation events' );
+like( $source, qr/transcriptLiveFollow/, 'Even Hub source tracks whether the glasses transcript is in live-follow mode' );
 like( $source, qr/cycleInputAction/, 'Even Hub source cycles staged actions from glasses swipe input' );
 like( $source, qr/selectedInputAction = 'send'/, 'Even Hub source resets the glasses input view to Send by default' );
 like( $source, qr/GLASSES_POPUP_CONTAINER_ID/, 'Even Hub source defines a dedicated popup container id' );
@@ -50,9 +51,12 @@ like( $source, qr/setLocalStorage/, 'Even Hub source persists setup through SDK 
 like( $source, qr/setInterval/, 'Even Hub source schedules background bridge refreshes' );
 like( $source, qr/normalizeDraftQuery/, 'Even Hub source normalizes staged query input' );
 like( $source, qr/buildInputText/, 'Even Hub source renders a dedicated glasses input view' );
+like( $source, qr/buildTranscriptRenderLines/, 'Even Hub source formats transcript content through a dedicated wrap-and-tail helper' );
+like( $source, qr/TextContainerUpgrade/, 'Even Hub source can upgrade transcript and popup content without a full layout rebuild' );
 like( $source, qr/startVoiceInput/, 'Even Hub source defines a hybrid voice-input entrypoint' );
 like( $source, qr/stopVoiceInput/, 'Even Hub source defines a hybrid voice-input stop path' );
-like( $source, qr/rebuildPageContainer/, 'Even Hub source rebuilds the page container for popup overlay transitions' );
+like( $source, qr/glassesLayoutMode/, 'Even Hub source tracks the current glasses layout mode so transcript refreshes do not rebuild unnecessarily' );
+like( $source, qr/rebuildPageContainer/, 'Even Hub source rebuilds the page container only for layout transitions such as popup open or close' );
 like( $source, qr/GLASSES_TRANSCRIPT_CONTAINER_NAME/, 'Even Hub source uses a dedicated single transcript container' );
 like( $source, qr/loadBridge\(\)/, 'Even Hub source supports a bridge loader indirection for governed runtime proof' );
 like( $source, qr/speechRecognitionSupported/, 'Even Hub source detects speech-recognition support' );
@@ -68,5 +72,11 @@ my $style = slurp('even-hub/src/style.css');
 unlike( $style, qr/background(?:-color)?\s*:/i, 'Even Hub source styles avoid background fill declarations' );
 like( $style, qr/border:/i, 'Even Hub source styles use borders for structure' );
 like( $style, qr/\.input-area\b/, 'Even Hub source styles include the staged query textarea layout' );
+
+my $transcript_helper = slurp('even-hub/src/transcript-view.js');
+like( $transcript_helper, qr/wrapTranscriptLine/, 'transcript helper exposes line wrapping' );
+like( $transcript_helper, qr/buildTranscriptRenderLines/, 'transcript helper exposes transcript render slicing' );
+like( $transcript_helper, qr/slice\(-visibleLines\)/, 'transcript helper keeps live-follow output pinned to the newest wrapped lines' );
+like( $transcript_helper, qr/slice\(-reviewLines\)/, 'transcript helper bounds manual-review output without rebuilding the entire raw transcript' );
 
 done_testing;

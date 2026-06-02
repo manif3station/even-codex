@@ -1,5 +1,18 @@
 Revision history for even-codex
 
+0.31 2026-06-02
+
+    - keep the glasses transcript anchored to the newest bottom lines by
+      default instead of bouncing the operator back to the top during live
+      auto-refresh
+    - preserve manual transcript review when the operator swipes up, and only
+      resume live-follow once they return to the bottom line
+    - stop rebuilding the glasses transcript container on every background
+      refresh and switch to in-place text upgrades so native Even scrolling is
+      not reset by transcript polling
+    - add governed source-level checks and simulator-backed release evidence
+      for the transcript live-follow contract
+
 0.30 2026-06-02
 
     - add a governed hybrid voice-query flow to the `D2-Codex` Even Hub app

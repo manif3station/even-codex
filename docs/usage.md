@@ -154,6 +154,8 @@ For tickets that change the live query loop, extend the same review with:
 - the same query visible in the Codex TUI
 - assistant progress text visible on the glasses while the answer is forming
 - the glasses view showing transcript by default, the staged input view only after `click`, action changes after `up` or `down`, and transcript restore after `double_click`
+- the glasses transcript staying on the live bottom lines by default, freezing in place during manual upward review, and resuming live-follow only after `down` returns to the bottom
+- long wrapped prompt, progress, and reply text being tailed by physical glasses rows so the newest rendered bottom line remains visible on first render
 - for glasses-interaction tickets, visible simulator button proof that the on-screen `Click`, `Up`, `Down`, and `Double click` controls change the glasses UI exactly as expected
 
 This interpretation rule is reusable and permanent for this skill. The image or
@@ -258,6 +260,8 @@ Inside `D2-Codex`, the phone-side plugin now gives the user:
 Inside the glasses view, the same build now gives the user:
 
 - one full-screen live transcript window
+- the newest bottom transcript lines visible by default during live Codex streaming
+- the newest wrapped glasses rows visible by default even when a single reply spans multiple rows
 - a click-open bottom popup prompt box that keeps the transcript visible behind it and defaults to `Send`
 - a hybrid voice-query path where the same click can start speech recognition in the companion webview and mirror recognised text into the popup draft
 - `up` and `down` action cycling only while that popup is open
@@ -268,6 +272,8 @@ Inside the glasses view, the same build now gives the user:
 On the glasses page, the current controls are:
 
 - swipe up and swipe down to use native transcript scrolling
+- while the popup is closed, `up` freezes the transcript in manual review mode and `down` resumes live-follow once the operator returns to the newest bottom line
+- the same live-follow rule applies to wrapped long lines: the glasses stay on the newest rendered rows until `up` deliberately freezes review mode
 - click to open the bottom popup from the transcript, start the hybrid voice-input attempt when available, then click again to apply the selected staged action, close an empty standby popup, or dismiss `Cancel`
 - no native hold-to-dictate popup, because the current Even SDK docs do not document one; the shipped voice path stays hybrid and depends on the companion webview speech-recognition support
 
@@ -285,6 +291,10 @@ walks the operator through the full lifecycle:
 7. let the companion webview fill the staged draft when speech recognition is available
 8. single-click again to submit that recognised draft into the paired Codex session
 9. watch the updated Codex progress and reply stream back to both the phone plugin and the glasses transcript
+10. confirm the transcript remains on the newest bottom lines while new text arrives
+11. swipe up to inspect older lines and verify later background refreshes do not yank the view away
+12. swipe down back to the newest bottom line and verify live-follow resumes
+13. for long wrapped replies, confirm the newest marker at the tail of the reply is visible on first render, remains pinned during `up` freeze, and updates after `down` resume
 
 When voice recognition does not yield a staged draft, the next click closes the
 popup cleanly and records a recovery message instead of leaving the operator on
@@ -298,6 +308,7 @@ an empty send state.
 - `npm run build:hub` writes `dist/index.html` for Even Hub packaging
 - `EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npm run pack:hub` writes `dist/d2-codex.ehpk`
 - the packaged `D2-Codex` Hub app shows a guided phone-side connector and session dashboard plus a single-container glasses transcript layout
+- the transcript layout now follows a governed live-bottom contract instead of rebuilding the whole glasses page on every poll
 - the hybrid voice-query browser proof shows `glasses click -> recognised draft -> click submit` with `what is 2 plus 3` flowing into the staged query and latest prompt panels
 - a browser-level plugin proof changes the live paired session state after the
   page is already open and verifies that `Latest Prompt`, `Latest Progress`,

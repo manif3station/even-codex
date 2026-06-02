@@ -104,6 +104,8 @@ Inside the glasses view, the user can:
 - switch between saved sessions for the active connector
 - refresh the active connector
 - scroll a single live transcript window with native Even swipe behavior
+- keep that transcript pinned to the newest bottom lines by default until the user deliberately scrolls up to review older lines
+- tail long wrapped transcript text so the newest physical bottom lines stay visible even when one prompt, progress message, or reply spans multiple glasses rows
 - open a bottom popup prompt box with a glasses click while keeping the transcript visible behind it
 - arm a hybrid voice-query capture path from that popup when the companion WebView exposes speech recognition
 - mirror recognised speech into the staged popup draft before submission
@@ -160,6 +162,8 @@ The current packaged UX now includes:
 
 - a phone-side connection dashboard with setup checklist, connector profiles, session libraries, and refresh controls
 - a glasses-side transcript window that streams recent prompt, progress, and reply text above a bottom popup prompt box
+- a governed live-follow transcript mode that keeps the latest bottom lines visible by default, pauses auto-follow during manual review, and resumes only after the operator returns to the bottom
+- a wrapped-line transcript tail that keeps the newest physical rows visible by default, even when the latest progress or reply text wraps across multiple glasses rows
 - a glasses-side bottom popup prompt box that opens after a glasses click and disappears after `Send`, `Cancel`, or double-click close
 - a hybrid voice-query path where a glasses click can start a companion webview speech-recognition session and mirror recognised text back into the popup draft
 - automatic background transcript refresh so the phone-side plugin and glasses view catch up to live Codex turns without a manual reload
@@ -199,6 +203,8 @@ That brings up the Even bridge on port `6789`, serves the Hub app locally, and s
 In the Dockerized noVNC desktop, the Codex xterm, the phone-side Even plugin, and the glasses view all reflect the paired session transcript. A live `hi -> Hi` smoke run has been proven end to end through fresh screenshot review of the running simulator desktop.
 The same simulator flow now also proves the staged query path: `slash ship status` is normalized to `/ship status` and shown in the phone plugin composer.
 The current release extends that to the visible simulator buttons too: a live screenshot-reviewed run proves transcript-by-default, the on-screen `Click` button opens a bottom popup box while keeping the transcript visible behind it, `Up` and `Down` change the selected action inside that popup, a second `Click` can dismiss the popup through `Cancel` or send the staged prompt, and `Double click` returns to the transcript.
+The current transcript release extends the same proof to scrolling: the glasses transcript starts on the newest bottom lines, stays there while new Codex text streams in, stops auto-following when the operator swipes up to inspect older lines, and resumes live-follow only after the operator returns to the bottom with `Down`.
+The current simulator regression proof also covers long wrapped transcript text: on a fresh start the glasses show the latest wrapped reply tail with `END-MARKER`, `Up` freezes that rendered tail while the phone-side plugin advances to a replacement `NEXT-END` reply, and `Down` resumes live-follow so the glasses catch up to the replacement tail.
 The current governed voice slice extends that further: a screenshot-reviewed browser proof now shows a glasses click opening the popup, a companion speech-recognition run filling `what is 2 plus 3` into the draft, and a second click submitting that recognised query through the existing prompt path.
 The phone-side plugin now also proves its own live status refresh path: after
 the page is already open, the `Latest Prompt`, `Latest Progress`, and `Latest

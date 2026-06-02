@@ -8,9 +8,9 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 
 ## Verified Result
 
-- verified on 2026-06-02 for release `0.30`
-- all 23 test files passed
-- `Files=23, Tests=704`
+- verified on 2026-06-02 for release `0.31`
+- all 24 test files passed
+- `Files=24, Tests=720`
 - selected module statement coverage reached `100.0`
 - selected module subroutine coverage reached `100.0`
 - selected module branch coverage reached `100.0`
@@ -33,6 +33,7 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 - `t/21-even-hub-voice-playwright.t` also proved the empty standby recovery path where a second click closes the popup cleanly instead of surfacing a dead-end send error
 - `t/22-plugin-autorefresh-playwright.t` proved the phone-side plugin updates `Latest Prompt`, `Latest Progress`, and `Latest Reply` automatically from live session changes without a manual refresh click
 - `t/22-plugin-autorefresh-playwright.t` also proved stale progress text clears when the live session no longer reports progress
+- `t/23-even-hub-transcript-render.t` proved the wrapped-line transcript helper keeps live-follow output pinned to the newest visible tail while preserving deeper history for manual review mode
 - `t/02-repo-files.t` now proves the README keeps the governed end-to-end flow section for the bridge, plugin, glasses transcript, popup interaction, and Codex return path
 - `t/18-simulator-codex-container.t` now proves the simulator publishes and launches the packaged native Codex binary path instead of the Node launcher wrapper path
 - a real smoke run built the simulator image, started the containerized desktop, confirmed the runtime process was running as uid `1000`, confirmed `/home/dashboard/.codex` was present from the host mount, returned `HTTP 200` from `http://127.0.0.1:15700/`, and proved through fresh screenshot review outside the Perl suite that the noVNC desktop showed:
@@ -59,6 +60,10 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
   - `/opt/codex-cli/bin/codex` was no longer the xterm launch target
   - the X display was live and screenshot capture succeeded from the restarted
     simulator stack
+- a fresh simulator screenshot review outside the Perl suite proved the transcript-scroll regression fix on the actual rendered glasses UI:
+  - a fresh start with long wrapped transcript content showed the latest reply tail ending in `END-MARKER`
+  - `Up` froze the glasses transcript while the phone-side plugin advanced to a replacement `NEXT-END` reply
+  - `Down` resumed live-follow and the glasses caught up to that replacement `NEXT-END` tail
 
 Coverage summary from the verified run:
 

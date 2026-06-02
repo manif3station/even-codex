@@ -1,9 +1,11 @@
 import './style.css';
+import { buildTranscriptRenderLines } from './transcript-view.js';
 
 import {
   CreateStartUpPageContainer,
   OsEventTypeList,
   RebuildPageContainer,
+  TextContainerUpgrade,
   TextContainerProperty,
   waitForEvenAppBridge,
 } from '@evenrealities/even_hub_sdk';
@@ -62,6 +64,7 @@ type PluginState = {
   draftQuery: string;
   stagedQuery: string;
   lastSubmittedQuery: string;
+  transcriptLiveFollow: boolean;
   voiceInputState: VoiceInputState;
   voiceSupported: boolean;
   voiceStatus: string;
@@ -151,6 +154,7 @@ const app = document.querySelector<HTMLDivElement>('#app');
 const testWindow = window as TestWindow;
 const runtime = {
   recognition: null as SpeechRecognitionLike | null,
+  glassesLayoutMode: null as GlassesSurfaceMode | null,
 };
 
 if (!app) {
@@ -192,6 +196,7 @@ async function boot() {
 
     if (sysEventType === OsEventTypeList.DOUBLE_CLICK_EVENT || isTextContainerDoubleClick) {
       state.glassesSurfaceMode = 'transcript';
+      state.transcriptLiveFollow = true;
       state.lastMessage = 'Glasses double press restored the live transcript view.';
       renderPhoneUi(state);
       await syncGlassesPage(bridge, state);
@@ -219,11 +224,14 @@ async function boot() {
         if (state.glassesSurfaceMode === 'input') {
           cycleInputAction(state, -1);
           state.lastMessage = `Glasses swipe up selected ${state.selectedInputAction.toUpperCase()}.`;
+          renderPhoneUi(state);
+          await syncGlassesPage(bridge, state);
         } else {
-          state.lastMessage = 'Glasses swipe up reached the transcript top.';
+          state.transcriptLiveFollow = false;
+          state.lastMessage = 'Transcript review is pinned in place until you scroll back to the live bottom line.';
+          renderPhoneUi(state);
+          await syncGlassesPage(bridge, state, { forceTranscript: true });
         }
-        renderPhoneUi(state);
-        await syncGlassesPage(bridge, state);
         return;
       }
 
@@ -231,11 +239,14 @@ async function boot() {
         if (state.glassesSurfaceMode === 'input') {
           cycleInputAction(state, 1);
           state.lastMessage = `Glasses swipe down selected ${state.selectedInputAction.toUpperCase()}.`;
+          renderPhoneUi(state);
+          await syncGlassesPage(bridge, state);
         } else {
-          state.lastMessage = 'Glasses swipe down reached the transcript bottom.';
+          state.transcriptLiveFollow = true;
+          state.lastMessage = 'Transcript live-follow resumed at the newest bottom line.';
+          renderPhoneUi(state);
+          await syncGlassesPage(bridge, state, { forceTranscript: true });
         }
-        renderPhoneUi(state);
-        await syncGlassesPage(bridge, state);
         return;
       }
     }
@@ -522,6 +533,7 @@ function createInitialState(config: StoredConfig): PluginState {
     draftQuery: '',
     stagedQuery: '',
     lastSubmittedQuery: '',
+    transcriptLiveFollow: true,
     voiceInputState: 'idle',
     voiceSupported: false,
     voiceStatus: 'Voice query capture has not been initialized yet.',
@@ -742,6 +754,7 @@ function renderPhoneUi(state: PluginState) {
           <h2 class="section-title">Glasses Controls</h2>
           <ul class="list">
             <li>Up and Down use the native Even transcript scroll path on the single glasses text window.</li>
+            <li>The transcript follows the live bottom line until you scroll up to inspect older text.</li>
             <li>Click opens the staged query popup over the transcript and starts a companion voice-input attempt when speech recognition is available.</li>
             <li>Recognised speech is mirrored into the popup draft so the next click can send it through the existing action flow.</li>
             <li>Double-click closes the popup and returns to the live transcript.</li>
@@ -815,21 +828,46 @@ function buildStartupPage(state: PluginState) {
 async function syncGlassesPage(
   bridge: Awaited<ReturnType<typeof waitForEvenAppBridge>>,
   state: PluginState,
+  options: { forceTranscript?: boolean } = {},
 ) {
-  if (state.glassesSurfaceMode === 'input') {
+  if (runtime.glassesLayoutMode !== state.glassesSurfaceMode) {
     await bridge.rebuildPageContainer(
       new RebuildPageContainer({
         containerTotalNum: buildTextObjects(state).length,
         textObject: buildTextObjects(state),
       }),
     );
+    runtime.glassesLayoutMode = state.glassesSurfaceMode;
     return;
   }
 
-  await bridge.rebuildPageContainer(
-    new RebuildPageContainer({
-      containerTotalNum: buildTextObjects(state).length,
-      textObject: buildTextObjects(state),
+  if (state.glassesSurfaceMode === 'transcript') {
+    if (!state.transcriptLiveFollow && !options.forceTranscript) {
+      return;
+    }
+
+    await bridge.textContainerUpgrade(
+      new TextContainerUpgrade({
+        containerID: GLASSES_TRANSCRIPT_CONTAINER_ID,
+        containerName: GLASSES_TRANSCRIPT_CONTAINER_NAME,
+        content: buildTranscriptText(state),
+      }),
+    );
+    return;
+  }
+
+  await bridge.textContainerUpgrade(
+    new TextContainerUpgrade({
+      containerID: GLASSES_TRANSCRIPT_CONTAINER_ID,
+      containerName: GLASSES_TRANSCRIPT_CONTAINER_NAME,
+      content: buildTranscriptText(state),
+    }),
+  );
+  await bridge.textContainerUpgrade(
+    new TextContainerUpgrade({
+      containerID: GLASSES_POPUP_CONTAINER_ID,
+      containerName: GLASSES_POPUP_CONTAINER_NAME,
+      content: buildInputText(state),
     }),
   );
 }
@@ -873,6 +911,14 @@ function buildTextObjects(state: PluginState) {
 }
 
 function buildTranscriptText(state: PluginState) {
+  const lines = buildTranscriptLines(state);
+  return buildTranscriptRenderLines(lines, {
+    follow: state.transcriptLiveFollow,
+    popup: state.glassesSurfaceMode === 'input',
+  }).join('\n');
+}
+
+function buildTranscriptLines(state: PluginState) {
   const connector = getActiveConnector(state);
   const turns = connector.recentTurns.slice(-(state.glassesSurfaceMode === 'input' ? 3 : 4));
   const lines: string[] = [];
@@ -905,7 +951,7 @@ function buildTranscriptText(state: PluginState) {
     lines.push('Waiting for the first Codex transcript.');
   }
 
-  return lines.join('\n');
+  return lines;
 }
 
 function buildInputText(state: PluginState) {

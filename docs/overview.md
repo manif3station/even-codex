@@ -31,6 +31,9 @@ The packaged Even Hub app:
 - persists the bridge origin through SDK local storage
 - exposes a phone-side setup dashboard with connector profile management, session libraries, refresh, and pairing guidance
 - auto-refreshes the bridge transcript in the background so glasses and phone stay aligned with the current Codex turn
+- keeps the glasses transcript on the newest bottom lines by default instead of bouncing back to the top during background refresh
+- tails wrapped transcript rows so the newest physical glasses lines stay visible even when one message spans multiple rows
+- pauses live-follow when the operator scrolls up to inspect older transcript lines and resumes it only after they return to the bottom
 - renders the glasses view as a transcript region plus a bottom popup prompt box when click input is active
 - keeps the transcript as the default glasses surface
 - opens a bottom popup prompt box after an explicit glasses click while leaving the transcript visible behind it

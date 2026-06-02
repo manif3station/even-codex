@@ -38,12 +38,15 @@ like( $source, qr/\/prompt/, 'source submits staged prompts through the bridge p
 like( $source, qr/refreshBootstrap/, 'source centralizes bridge refresh work' );
 like( $source, qr/buildTranscriptText/, 'source builds the glasses transcript view' );
 like( $source, qr/buildInputText/, 'source builds a staged glasses popup view' );
+like( $source, qr/buildTranscriptLines/, 'source builds transcript lines before applying live-follow slicing' );
 like( $source, qr/quiet:\s*true/, 'source uses a quiet background refresh path for live transcript updates' );
-like( $source, qr/rebuildPageContainer/, 'source rebuilds the glasses layout for the popup overlay' );
+like( $source, qr/textContainerUpgrade/, 'source upgrades transcript content without recreating the full page layout' );
+like( $source, qr/rebuildPageContainer/, 'source still rebuilds the glasses layout for popup overlay transitions' );
 like( $source, qr/OsEventTypeList\.CLICK_EVENT/, 'source handles click events for glasses interaction' );
 like( $source, qr/sysEventType === OsEventTypeList\.CLICK_EVENT/, 'source accepts simulator click gestures that surface as system events' );
 like( $source, qr/textEvent\?->\{?containerID|\btextEvent\b/, 'source reacts to Even text events from glasses containers' );
 like( $source, qr/Up and Down use the native Even transcript scroll path/, 'phone UI explains native glasses transcript scrolling' );
+like( $source, qr/live bottom line|live-follow/i, 'phone UI source explains the live-follow transcript behavior' );
 like( $source, qr/Click opens the staged query popup over the transcript and starts a companion voice-input attempt/, 'phone UI explains click-to-popup voice behavior' );
 like( $source, qr/Recognised speech is mirrored into the popup draft/, 'phone UI explains that recognised speech flows back into the popup draft' );
 like( $source, qr/Double-click closes the popup and returns to the live transcript/, 'phone UI explains double-click popup restore behavior' );

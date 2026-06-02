@@ -10,7 +10,7 @@ open my $env_fh, '<', '.env' or die "Unable to open .env: $!";
 my $env = do { local $/; <$env_fh> };
 close $env_fh;
 
-like($env, qr/^VERSION=0\.30$/m, '.env stores version 0.30');
-is($Even::Codex::Spec::VERSION, '0.30', 'module version matches .env');
+like($env, qr/^VERSION=0\.31$/m, '.env stores version 0.31');
+is($Even::Codex::Spec::VERSION, '0.31', 'module version matches .env');
 
 done_testing;
