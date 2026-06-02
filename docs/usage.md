@@ -302,6 +302,10 @@ an empty send state.
 - a browser-level plugin proof changes the live paired session state after the
   page is already open and verifies that `Latest Prompt`, `Latest Progress`,
   and `Latest Reply` update automatically without a manual refresh click
+- when browser speech recognition is unavailable, the popup now falls back to
+  the focused phone composer instead of surfacing `Voice UNSUPPORTED`; the
+  governed browser proof verifies that the companion textarea receives focus and
+  the close guidance points the user back to the phone mic or composer
 - the popup no longer traps the user in an empty `SEND` error path; a click with no recognised or typed draft now closes back to transcript standby
 - the simulator xterm startup path now bypasses the Codex Node launcher wrapper so first-run desktop startup does not fall into a non-root `npm install -g @openai/codex@latest` failure
 - for simulator-launcher and Codex-startup slices, the governed gate now also

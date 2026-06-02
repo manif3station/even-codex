@@ -205,6 +205,10 @@ the page is already open, the `Latest Prompt`, `Latest Progress`, and `Latest
 Reply` panels update automatically from the paired bridge session without a
 manual refresh click, and stale progress text clears when the live session no
 longer reports it.
+When browser speech recognition is unavailable, the popup no longer strands the
+user on `Voice UNSUPPORTED`. A glasses click now hands off to the focused phone
+composer so the user can use the phone keyboard microphone or type immediately
+while the glasses popup mirrors that fallback path.
 For simulator-launcher or Codex-startup fixes, the release gate must also prove
 the exact `dashboard even-codex.simulator start` path against a real paired
 workspace after the installed skill copy has been refreshed. Repo-only checks,

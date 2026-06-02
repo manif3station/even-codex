@@ -137,6 +137,7 @@ const { chromium } = require('playwright-core');
   });
 
   await page.goto(process.env.EVEN_HUB_URL, { waitUntil: 'networkidle' });
+  await page.waitForFunction(() => window.__evenCodexRuntime && typeof window.__evenCodexRuntime.eventHandler === 'function');
   await page.evaluate(() => window.__triggerEvenHubEvent({ sysEvent: { eventSource: 1 } }));
   await page.waitForFunction(() => {
     const area = document.querySelector('#draftQuery');
@@ -232,15 +233,23 @@ const { chromium } = require('playwright-core');
     };
   });
   await emptyPage.goto(process.env.EVEN_HUB_URL, { waitUntil: 'networkidle' });
-  await emptyPage.evaluate(() => window.__triggerEvenHubEvent({ sysEvent: { eventSource: 1 } }));
-  await emptyPage.waitForFunction(() => /Voice query capture failed|Voice query capture is unavailable/.test(document.body.textContent || ''));
+  await emptyPage.waitForFunction(() => window.__evenCodexRuntime && typeof window.__evenCodexRuntime.eventHandler === 'function');
   await emptyPage.evaluate(() => window.__triggerEvenHubEvent({ sysEvent: { eventSource: 1 } }));
   await emptyPage.waitForFunction(() => {
-    return /Popup closed with no staged query/.test(document.body.textContent || '');
+    const bodyText = document.body.textContent || '';
+    const draft = document.querySelector('#draftQuery');
+    return /phone composer fallback|phone keyboard microphone|Use the phone mic or type/i.test(bodyText)
+      && draft
+      && document.activeElement === draft;
+  });
+  await emptyPage.evaluate(() => window.__triggerEvenHubEvent({ sysEvent: { eventSource: 1 } }));
+  await emptyPage.waitForFunction(() => {
+    return /Popup closed with no staged query.*phone mic or type in the composer/i.test(document.body.textContent || '');
   });
   const emptyPayload = await emptyPage.evaluate(() => ({
     statusText: document.body.textContent || '',
     voiceState: Array.from(document.querySelectorAll('.panel')).find((node) => /Voice Query/.test(node.textContent || ''))?.textContent || '',
+    activeElement: document.activeElement && 'id' in document.activeElement ? document.activeElement.id : '',
   }));
   await emptyPage.close();
   console.log(JSON.stringify(payload));
@@ -262,8 +271,10 @@ JS
     is( $payload->{draftQuery}, 'what is 2 plus 3', 'voice flow mirrors recognised text into the draft query field' );
     like( $payload->{latestPrompt}, qr/what is 2 plus 3/, 'voice flow submits the recognised query through the existing prompt path' );
     ok( scalar @{ $payload->{audioCalls} } >= 2, 'voice flow toggles bridge audio control during the simulated voice session' );
-    like( $empty_payload->{statusText}, qr/Popup closed with no staged query/, 'empty standby click closes the popup instead of leaving a dead-end send error' );
-    like( $empty_payload->{voiceState}, qr/(?:UNSUPPORTED|ERROR)/, 'empty-close proof also covers the non-usable speech-recognition fallback state' );
+    like( $empty_payload->{statusText}, qr/phone composer fallback|phone keyboard microphone|Use the phone mic or type/i, 'fallback path surfaces a usable phone-composer status instead of unsupported' );
+    is( $empty_payload->{activeElement}, 'draftQuery', 'fallback path focuses the companion composer textarea' );
+    like( $empty_payload->{statusText}, qr/Popup closed with no staged query.*phone mic or type in the composer/i, 'empty standby click closes with a useful phone-composer guidance message' );
+    unlike( $empty_payload->{voiceState}, qr/UNSUPPORTED/, 'fallback path no longer surfaces voice unsupported in the popup state' );
 };
 my $error = $@;
 

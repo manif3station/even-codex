@@ -29,6 +29,9 @@ Revision history for even-codex
       session state and stale progress text does not linger
     - add a browser-level proof that the phone-side plugin updates those status
       panels automatically without a manual refresh click
+    - replace the popup `Voice UNSUPPORTED` dead-end with a focused phone
+      composer fallback so glasses click still leads into a usable phone mic or
+      typing path when browser speech recognition is unavailable
 
 0.28 2026-06-01
 

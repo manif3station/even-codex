@@ -10,7 +10,7 @@ import {
 
 type InputAction = 'send' | 'retry' | 'cancel';
 type GlassesSurfaceMode = 'transcript' | 'input';
-type VoiceInputState = 'idle' | 'starting' | 'listening' | 'captured' | 'unsupported' | 'error';
+type VoiceInputState = 'idle' | 'starting' | 'listening' | 'captured' | 'phone' | 'error';
 
 type SessionRecord = {
   id: string;
@@ -752,6 +752,10 @@ function renderPhoneUi(state: PluginState) {
       </div>
     </section>
   `;
+
+  if (state.voiceInputState === 'phone') {
+    focusDraftComposerSoon();
+  }
 }
 
 function renderConnectorProfiles(state: PluginState) {
@@ -905,7 +909,11 @@ function buildTranscriptText(state: PluginState) {
 }
 
 function buildInputText(state: PluginState) {
-  const query = truncateForGlasses(state.stagedQuery || state.draftQuery || 'No staged query.');
+  const query = truncateForGlasses(
+    state.stagedQuery ||
+      state.draftQuery ||
+      (state.voiceInputState === 'phone' ? 'Use phone mic or type.' : 'No staged query.'),
+  );
   return [
     'Prompt Box',
     `Draft ${query}`,
@@ -946,6 +954,34 @@ async function loadBridge() {
   return waitForEvenAppBridge();
 }
 
+function focusDraftComposer() {
+  const composer = document.querySelector<HTMLTextAreaElement>('#draftQuery');
+  if (!composer) {
+    return false;
+  }
+
+  composer.focus();
+  const draft = composer.value || '';
+  const cursor = draft.length;
+  if (typeof composer.setSelectionRange === 'function') {
+    composer.setSelectionRange(cursor, cursor);
+  }
+  return document.activeElement === composer;
+}
+
+function focusDraftComposerSoon() {
+  window.setTimeout(() => {
+    focusDraftComposer();
+  }, 0);
+}
+
+function activatePhoneComposerFallback(state: PluginState, message?: string) {
+  state.voiceInputState = 'phone';
+  state.voiceStatus = message || 'Phone composer fallback is ready. Use the phone keyboard microphone or type into the composer.';
+  state.lastMessage = state.voiceStatus;
+  focusDraftComposerSoon();
+}
+
 function speechRecognitionFactory(): (() => SpeechRecognitionLike) | null {
   if (!speechRecognitionSupported()) {
     return null;
@@ -975,9 +1011,7 @@ async function startVoiceInput(
 
   const factory = speechRecognitionFactory();
   if (!factory) {
-    state.voiceInputState = 'unsupported';
-    state.voiceStatus = 'This webview does not expose speech recognition. Use the phone composer text area instead.';
-    state.lastMessage = 'Voice query capture is unavailable here. Type the query in the phone composer.';
+    activatePhoneComposerFallback(state);
     return;
   }
 
@@ -1026,9 +1060,17 @@ async function startVoiceInput(
   };
 
   recognition.onerror = (event) => {
-    state.voiceInputState = 'error';
-    state.voiceStatus = `Voice query capture failed: ${event.error || 'unknown error'}`;
-    state.lastMessage = state.voiceStatus;
+    const errorCode = event.error || 'unknown error';
+    if (errorCode === 'not-allowed' || errorCode === 'service-not-allowed' || errorCode === 'audio-capture') {
+      activatePhoneComposerFallback(
+        state,
+        'Phone composer fallback is ready. Use the phone keyboard microphone or type into the composer.',
+      );
+    } else {
+      state.voiceInputState = 'error';
+      state.voiceStatus = `Voice query capture failed: ${errorCode}`;
+      state.lastMessage = state.voiceStatus;
+    }
     void bridge.audioControl(false).catch(() => {});
     renderPhoneUi(state);
     void syncGlassesPage(bridge, state);
@@ -1059,9 +1101,10 @@ async function startVoiceInput(
     recognition.start();
   } catch (error) {
     runtime.recognition = null;
-    state.voiceInputState = 'error';
-    state.voiceStatus = `Voice query capture failed to start: ${formatError(error)}`;
-    state.lastMessage = state.voiceStatus;
+    activatePhoneComposerFallback(
+      state,
+      `Phone composer fallback is ready. Use the phone keyboard microphone or type into the composer.`,
+    );
   }
 }
 
@@ -1123,8 +1166,14 @@ async function applyInputAction(
     normalized = normalizeDraftQuery(state.stagedQuery || state.draftQuery || state.lastSubmittedQuery);
     if (!normalized) {
       state.glassesSurfaceMode = 'input';
-      state.lastMessage = 'Voice capture stopped without recognised text. Click again to close or speak again.';
-      state.voiceStatus = 'Voice query capture stopped without recognised text.';
+      if (state.voiceInputState === 'phone' || !state.voiceSupported) {
+        focusDraftComposerSoon();
+        state.lastMessage = 'Use the phone mic or type in the composer, then click again to send or close.';
+        state.voiceStatus = 'Phone composer fallback is still open. Use the phone mic or type into the composer.';
+      } else {
+        state.lastMessage = 'Voice capture stopped without recognised text. Click again to close or speak again.';
+        state.voiceStatus = 'Voice query capture stopped without recognised text.';
+      }
       return;
     }
   }
@@ -1132,9 +1181,9 @@ async function applyInputAction(
   if (!normalized) {
     state.glassesSurfaceMode = 'transcript';
     state.lastMessage = 'Closed the popup because there is no staged query yet.';
-    state.voiceStatus = state.voiceSupported
-      ? 'Popup closed with no staged query. Click again to reopen voice standby.'
-      : 'Popup closed with no staged query. Type a query in the phone composer first.';
+    state.voiceStatus = state.voiceInputState === 'phone' || !state.voiceSupported
+      ? 'Popup closed with no staged query. Use the phone mic or type in the composer first.'
+      : 'Popup closed with no staged query. Click again to reopen voice standby.';
     return;
   }
 
