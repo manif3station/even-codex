@@ -10,7 +10,7 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 
 - verified on 2026-06-01 for release `0.29`
 - all 22 test files passed
-- `Files=22, Tests=674`
+- `Files=22, Tests=681`
 - selected module statement coverage reached `100.0`
 - selected module subroutine coverage reached `100.0`
 - selected module branch coverage reached `100.0`
@@ -31,6 +31,7 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 - `t/21-even-hub-voice-playwright.t` proved `glasses click -> recognised voice draft -> click submit` against a Vite-served Even Hub page with a fake bridge and fake speech-recognition engine
 - `t/21-even-hub-voice-playwright.t` also proved the empty standby recovery path where a second click closes the popup cleanly instead of surfacing a dead-end send error
 - `t/02-repo-files.t` now proves the README keeps the governed end-to-end flow section for the bridge, plugin, glasses transcript, popup interaction, and Codex return path
+- `t/18-simulator-codex-container.t` now proves the simulator publishes and launches the packaged native Codex binary path instead of the Node launcher wrapper path
 - a real smoke run built the simulator image, started the containerized desktop, confirmed the runtime process was running as uid `1000`, confirmed `/home/dashboard/.codex` was present from the host mount, returned `HTTP 200` from `http://127.0.0.1:15700/`, and proved through fresh screenshot review outside the Perl suite that the noVNC desktop showed:
   - the Codex xterm with `hi` and `Hi`
   - the Even plugin with `Latest Prompt hi` and `Latest Reply Hi`
@@ -42,6 +43,11 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
   - the same recognised text visible as the latest prompt after the second click send path
   - an empty standby click path that closes back to transcript mode with a clear recovery message
   - the README end-to-end release explanation matches the shipped interaction model the screenshots prove
+- a direct runtime proof outside the Perl suite built the simulator image and ran:
+  - `EVEN_CODEX_REAL_CODEX_BIN`
+  - `test -x "$EVEN_CODEX_REAL_CODEX_BIN"`
+  - `"$EVEN_CODEX_REAL_CODEX_BIN" --version`
+  which confirmed the simulator now points at `/opt/codex-cli/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex` and executes `codex-cli 0.135.0` without entering the wrapper self-update path
 
 Coverage summary from the verified run:
 

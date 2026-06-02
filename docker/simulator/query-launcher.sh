@@ -14,7 +14,7 @@ if [[ ! -d "${workspace_dir}" ]]; then
   workspace_dir="/opt/even-codex"
 fi
 
-codex_bin="${EVEN_CODEX_REAL_CODEX_BIN:-/opt/codex-cli/bin/codex}"
+codex_bin="${EVEN_CODEX_REAL_CODEX_BIN:-/opt/codex-cli/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex}"
 runtime_root="${EVEN_CODEX_RUNTIME_ROOT:-/tmp/even-codex-simulator}"
 pid_file="${runtime_root}/codex-xterm.pid"
 launch_log="${runtime_root}/codex-launch.log"

@@ -17,6 +17,9 @@ Revision history for even-codex
     - add a dedicated README end-to-end flow section so the shipped docs explain
       the full path from bridge startup and Codex transcript streaming through
       glasses popup interaction and query submission back into Codex
+    - launch the packaged native Codex binary in the simulator xterm so the
+      non-root desktop runtime no longer falls into the Node wrapper self-update
+      branch that can try `npm install -g @openai/codex@latest`
 
 0.28 2026-06-01
 

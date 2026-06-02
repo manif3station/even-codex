@@ -7,7 +7,7 @@ ARG EVEN_CODEX_HOST_GID=1000
 ENV DEBIAN_FRONTEND=noninteractive
 ENV DISPLAY=:1
 ENV VITE_EVEN_CODEX_DEFAULT_BRIDGE_ORIGIN=http://127.0.0.1:6789
-ENV EVEN_CODEX_REAL_CODEX_BIN=/opt/codex-cli/bin/codex
+ENV EVEN_CODEX_REAL_CODEX_BIN=/opt/codex-cli/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex
 ENV EVEN_CODEX_RUNTIME_USER=${EVEN_CODEX_RUNTIME_USER}
 ENV EVEN_CODEX_RUNTIME_HOME=/home/dashboard
 
@@ -44,6 +44,8 @@ RUN apt-get update \
 
 RUN npm install -g @evenrealities/evenhub-simulator@0.7.3 \
  && npm install -g --prefix /opt/codex-cli @openai/codex@0.135.0
+
+RUN test -x "${EVEN_CODEX_REAL_CODEX_BIN}"
 
 WORKDIR /opt/even-codex
 COPY . /opt/even-codex

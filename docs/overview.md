@@ -52,7 +52,7 @@ The submission layer now also ships with the repo:
 - a simulator-driven screenshot capture script for Hub screenshots
 - a Dockerized noVNC simulator control CLI for one-command start and stop lifecycle management
 - a simulator image that includes the Codex CLI and reuses host Codex auth through `~/.codex`
-- a simulator image that resumes the paired session in a visible xterm through the real bundled Codex CLI binary
+- a simulator image that resumes the paired session in a visible xterm through the packaged native Codex binary so the desktop runtime bypasses the Node launcher self-update branch
 - a host-UID default runtime model for the simulator container so mounted Codex auth is not rewritten by `root`
 - a one-command desktop E2E CLI that launches the bridge, app server, and simulator together
 - a skill-local release rule that keeps simulator screenshot interpretation outside the Perl `.t` suite and requires fresh human or LLM review

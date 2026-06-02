@@ -4,7 +4,7 @@ set -euo pipefail
 export DISPLAY=:1
 export WORKSPACE_REF="${EVEN_CODEX_WORKSPACE_REF:-simulator}"
 export EVEN_CODEX_WORKSPACE_PATH="${EVEN_CODEX_WORKSPACE_PATH:-/opt/even-codex}"
-export EVEN_CODEX_REAL_CODEX_BIN="${EVEN_CODEX_REAL_CODEX_BIN:-/opt/codex-cli/bin/codex}"
+export EVEN_CODEX_REAL_CODEX_BIN="${EVEN_CODEX_REAL_CODEX_BIN:-/opt/codex-cli/lib/node_modules/@openai/codex/node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex}"
 export EVEN_CODEX_RUNTIME_USER="${EVEN_CODEX_RUNTIME_USER:-dashboard}"
 export EVEN_CODEX_RUNTIME_HOME="${EVEN_CODEX_RUNTIME_HOME:-/home/dashboard}"
 export EVEN_CODEX_RUNTIME_ROOT="${EVEN_CODEX_RUNTIME_ROOT:-${EVEN_CODEX_RUNTIME_HOME}/.developer-dashboard/state/even-codex}"

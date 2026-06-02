@@ -14,7 +14,8 @@ sub slurp {
 
 my $dockerfile = slurp('docker/simulator/Dockerfile');
 like( $dockerfile, qr/\@openai\/codex\@0\.135\.0/, 'simulator Dockerfile installs the Codex CLI package' );
-like( $dockerfile, qr/EVEN_CODEX_REAL_CODEX_BIN=\/opt\/codex-cli\/bin\/codex/, 'simulator Dockerfile publishes a stable real Codex binary path' );
+like( $dockerfile, qr/EVEN_CODEX_REAL_CODEX_BIN=\/opt\/codex-cli\/lib\/node_modules\/\@openai\/codex\/node_modules\/\@openai\/codex-linux-x64\/vendor\/x86_64-unknown-linux-musl\/bin\/codex/, 'simulator Dockerfile publishes the packaged native Codex binary path' );
+unlike( $dockerfile, qr/EVEN_CODEX_REAL_CODEX_BIN=\/opt\/codex-cli\/bin\/codex/, 'simulator Dockerfile no longer points the real Codex binary path at the Node launcher wrapper' );
 like( $dockerfile, qr/\buseradd\b/, 'simulator Dockerfile creates a dedicated desktop runtime user' );
 like( $dockerfile, qr/if ! getent passwd "\$\{EVEN_CODEX_HOST_UID\}" >/ , 'simulator Dockerfile only creates a user when the host uid does not already exist' );
 like( $dockerfile, qr/^USER \$\{EVEN_CODEX_HOST_UID\}:\$\{EVEN_CODEX_HOST_GID\}$/m, 'simulator Dockerfile runs the container as the host uid and gid by default' );
@@ -32,6 +33,7 @@ my $entrypoint = slurp('docker/simulator/entrypoint.sh');
 unlike( $entrypoint, qr/\b(usermod|groupmod)\b/, 'simulator entrypoint does not mutate ids at runtime' );
 unlike( $entrypoint, qr/\bsu\b/, 'simulator entrypoint does not need a runtime su hop' );
 like( $entrypoint, qr/HOME="\$\{EVEN_CODEX_RUNTIME_HOME\}"/, 'simulator entrypoint exports a stable runtime home for the mounted Codex config' );
+like( $entrypoint, qr/EVEN_CODEX_REAL_CODEX_BIN="\$\{EVEN_CODEX_REAL_CODEX_BIN:-\/opt\/codex-cli\/lib\/node_modules\/\@openai\/codex\/node_modules\/\@openai\/codex-linux-x64\/vendor\/x86_64-unknown-linux-musl\/bin\/codex\}"/, 'simulator entrypoint defaults the real Codex path to the packaged native binary' );
 
 my $runtime = slurp('docker/simulator/runtime.sh');
 like( $runtime, qr/command -v codex/, 'simulator runtime verifies the Codex binary is present' );
@@ -45,6 +47,8 @@ like( $launcher, qr/\bresume\b/, 'query launcher resumes the paired Codex sessio
 like( $launcher, qr/codex-xterm\.pid/, 'query launcher records the active xterm pid for later replacement and cleanup' );
 like( $launcher, qr/\-\-no-alt-screen\b/, 'query launcher preserves inline Codex output for VNC inspection' );
 like( $launcher, qr/dangerously-bypass-hook-trust/, 'query launcher bypasses the workspace trust interstitial for the external Docker sandbox' );
+like( $launcher, qr/codex_bin="\$\{EVEN_CODEX_REAL_CODEX_BIN:-\/opt\/codex-cli\/lib\/node_modules\/\@openai\/codex\/node_modules\/\@openai\/codex-linux-x64\/vendor\/x86_64-unknown-linux-musl\/bin\/codex\}"/, 'query launcher defaults the real Codex path to the packaged native binary' );
+unlike( $launcher, qr/codex_bin="\$\{EVEN_CODEX_REAL_CODEX_BIN:-\/opt\/codex-cli\/bin\/codex\}"/, 'query launcher no longer defaults to the Node launcher wrapper path' );
 
 my $simulator_cli = slurp('cli/simulator');
 like( $simulator_cli, qr/EVEN_CODEX_WORKSPACE_PATH=/, 'simulator CLI writes the workspace path into the compose env file' );

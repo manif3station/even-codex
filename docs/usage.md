@@ -108,7 +108,7 @@ The default start flow now:
 - mounts `~/.codex` into `/home/dashboard/.codex` so existing Codex auth and config are reused without root-owned writes on the host
 - injects the active workspace pairing into the containerized bridge chain
 - starts the DD web server, local bridge, Hub app server, and Even simulator without extra host setup
-- opens the paired Codex session in a visible xterm window through the real bundled Codex CLI binary
+- opens the paired Codex session in a visible xterm window through the packaged native Codex binary instead of the Node launcher wrapper
 - exposes the Even simulator automation API on port `19898` so the glasses `up`, `down`, `click`, and `double_click` controls can be driven in governed E2E checks
 
 Useful override environment variables for Docker mode:
@@ -300,3 +300,4 @@ an empty send state.
 - the packaged `D2-Codex` Hub app shows a guided phone-side connector and session dashboard plus a single-container glasses transcript layout
 - the hybrid voice-query browser proof shows `glasses click -> recognised draft -> click submit` with `what is 2 plus 3` flowing into the staged query and latest prompt panels
 - the popup no longer traps the user in an empty `SEND` error path; a click with no recognised or typed draft now closes back to transcript standby
+- the simulator xterm startup path now bypasses the Codex Node launcher wrapper so first-run desktop startup does not fall into a non-root `npm install -g @openai/codex@latest` failure

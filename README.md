@@ -76,7 +76,7 @@ http://127.0.0.1:15700/vnc.html?autoconnect=1&resize=scale
 The default simulator command now builds a skill-local image from `developer-dashboard:latest`, injects the active workspace pairing, and starts the DD environment, Hub app, bridge, Even simulator, and Codex CLI together.
 
 The simulator container mounts `~/.codex` into `/home/dashboard/.codex`, keeps that path owned by the host caller UID, and reuses the existing Codex auth and config without a second login flow.
-It resumes the paired session in a visible xterm window through the real bundled Codex CLI binary, not through a wrapper-only stub.
+It resumes the paired session in a visible xterm window through the packaged native Codex binary, not through the Node launcher wrapper that can fall into a global self-update path.
 
 If you want the older host-local process mode instead of the Docker desktop:
 
