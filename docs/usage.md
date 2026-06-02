@@ -299,6 +299,9 @@ an empty send state.
 - `EVEN_CODEX_HUB_ORIGIN=http://192.168.1.20:6789 npm run pack:hub` writes `dist/d2-codex.ehpk`
 - the packaged `D2-Codex` Hub app shows a guided phone-side connector and session dashboard plus a single-container glasses transcript layout
 - the hybrid voice-query browser proof shows `glasses click -> recognised draft -> click submit` with `what is 2 plus 3` flowing into the staged query and latest prompt panels
+- a browser-level plugin proof changes the live paired session state after the
+  page is already open and verifies that `Latest Prompt`, `Latest Progress`,
+  and `Latest Reply` update automatically without a manual refresh click
 - the popup no longer traps the user in an empty `SEND` error path; a click with no recognised or typed draft now closes back to transcript standby
 - the simulator xterm startup path now bypasses the Codex Node launcher wrapper so first-run desktop startup does not fall into a non-root `npm install -g @openai/codex@latest` failure
 - for simulator-launcher and Codex-startup slices, the governed gate now also

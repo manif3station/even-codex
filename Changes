@@ -24,6 +24,11 @@ Revision history for even-codex
       `dashboard even-codex.simulator start` path after refreshing the
       installed skill copy, so future release gates cannot stop at repo-only or
       container-only startup proof
+    - make the phone-side plugin auto-refresh treat bridge session payloads as
+      authoritative so latest prompt, progress, and reply panels track the real
+      session state and stale progress text does not linger
+    - add a browser-level proof that the phone-side plugin updates those status
+      panels automatically without a manual refresh click
 
 0.28 2026-06-01
 

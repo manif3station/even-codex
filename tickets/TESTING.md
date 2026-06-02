@@ -9,8 +9,8 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 ## Verified Result
 
 - verified on 2026-06-02 for release `0.29`
-- all 22 test files passed
-- `Files=22, Tests=688`
+- all 23 test files passed
+- `Files=23, Tests=699`
 - selected module statement coverage reached `100.0`
 - selected module subroutine coverage reached `100.0`
 - selected module branch coverage reached `100.0`
@@ -30,6 +30,8 @@ docker compose -f ~/projects/skills/docker-compose.testing.yml run --rm perl-tes
 - `t/20-sender.t` proved launcher-mode prompt submission, tty fallback, xterm lookup, and default command execution paths
 - `t/21-even-hub-voice-playwright.t` proved `glasses click -> recognised voice draft -> click submit` against a Vite-served Even Hub page with a fake bridge and fake speech-recognition engine
 - `t/21-even-hub-voice-playwright.t` also proved the empty standby recovery path where a second click closes the popup cleanly instead of surfacing a dead-end send error
+- `t/22-plugin-autorefresh-playwright.t` proved the phone-side plugin updates `Latest Prompt`, `Latest Progress`, and `Latest Reply` automatically from live session changes without a manual refresh click
+- `t/22-plugin-autorefresh-playwright.t` also proved stale progress text clears when the live session no longer reports progress
 - `t/02-repo-files.t` now proves the README keeps the governed end-to-end flow section for the bridge, plugin, glasses transcript, popup interaction, and Codex return path
 - `t/18-simulator-codex-container.t` now proves the simulator publishes and launches the packaged native Codex binary path instead of the Node launcher wrapper path
 - a real smoke run built the simulator image, started the containerized desktop, confirmed the runtime process was running as uid `1000`, confirmed `/home/dashboard/.codex` was present from the host mount, returned `HTTP 200` from `http://127.0.0.1:15700/`, and proved through fresh screenshot review outside the Perl suite that the noVNC desktop showed:

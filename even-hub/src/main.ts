@@ -1257,7 +1257,9 @@ function mergeBootstrapIntoConnector(connector: ConnectorProfile, bootstrap: Boo
   connector.promptUrl = bootstrap.prompt_url;
   connector.lastSeenAt = createTimestamp();
   connector.lastAssistantProgressMessage =
-    bootstrap.last_assistant_progress_message || connector.lastAssistantProgressMessage;
+    typeof bootstrap.last_assistant_progress_message === 'string'
+      ? bootstrap.last_assistant_progress_message
+      : connector.lastAssistantProgressMessage;
   connector.recentTurns = Array.isArray(bootstrap.recent_turns) ? bootstrap.recent_turns : connector.recentTurns;
 
   const existing = connector.sessions.find((session) => session.id === bootstrap.codex_session_id);
@@ -1278,10 +1280,16 @@ function mergeBootstrapIntoConnector(connector: ConnectorProfile, bootstrap: Boo
 }
 
 function mergeSessionIntoConnector(connector: ConnectorProfile, session: SessionPayload) {
-  connector.lastUserMessage = session.last_user_message || connector.lastUserMessage;
+  connector.lastUserMessage =
+    typeof session.last_user_message === 'string' ? session.last_user_message : connector.lastUserMessage;
   connector.lastAssistantProgressMessage =
-    session.last_assistant_progress_message || connector.lastAssistantProgressMessage;
-  connector.lastAssistantMessage = session.last_assistant_message || connector.lastAssistantMessage;
+    typeof session.last_assistant_progress_message === 'string'
+      ? session.last_assistant_progress_message
+      : connector.lastAssistantProgressMessage;
+  connector.lastAssistantMessage =
+    typeof session.last_assistant_message === 'string'
+      ? session.last_assistant_message
+      : connector.lastAssistantMessage;
   connector.recentTurns = Array.isArray(session.recent_turns) ? session.recent_turns : connector.recentTurns;
 }
 

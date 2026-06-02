@@ -60,6 +60,7 @@ my @paths = (
     'docs/changes/2026-06-02-readme-e2e-flow.md',
     'docs/changes/2026-06-02-native-codex-simulator-bin.md',
     'docs/changes/2026-06-02-simulator-launcher-gate.md',
+    'docs/changes/2026-06-02-plugin-autorefresh-proof.md',
     'tickets/SOW.md',
     'tickets/EPIC-315.md',
     'tickets/EPIC-322.md',
@@ -91,11 +92,13 @@ my @paths = (
     'tickets/DD-356.md',
     'tickets/DD-357.md',
     'tickets/DD-358.md',
+    'tickets/DD-359.md',
     'tickets/EPIC-343.md',
     'tickets/EPIC-334.md',
     'tickets/EPIC-356.md',
     'tickets/EPIC-357.md',
     'tickets/EPIC-358.md',
+    'tickets/EPIC-359.md',
     'tickets/TESTING.md',
     't/12-even-hub-ux.t',
     't/13-even-hub-listing.t',
@@ -106,6 +109,7 @@ my @paths = (
     't/18-simulator-codex-container.t',
     't/19-live-transcript.t',
     't/20-sender.t',
+    't/22-plugin-autorefresh-playwright.t',
 );
 
 for my $path (@paths) {
